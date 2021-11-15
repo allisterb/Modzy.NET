@@ -1,15 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Net;
-using System.Reflection;
-using System.Security;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Modzy;
+
+using System.Reflection;
+
+using Microsoft.Extensions.Configuration;
 
 public abstract class Runtime
 {
@@ -17,6 +10,33 @@ public abstract class Runtime
     static Runtime()
     {
         Logger = new ConsoleLogger();
+        IsKubernetesPod = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("KUBERNETES_PORT")) || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENSHIFT_BUILD_NAMESPACE"));
+        if (IsKubernetesPod)
+        {
+            Configuration = new ConfigurationBuilder()
+                .AddEnvironmentVariables()
+                .Build();
+        }
+        else if (Assembly.GetEntryAssembly()?.GetName().Name == "Modzy.CLI" && Environment.GetEnvironmentVariable("USERNAME") == "Allister")
+        {
+            Configuration = new ConfigurationBuilder()
+                .AddUserSecrets("f3ed0dc7-f978-44ae-8add-9e5bfcf8fa8a")
+                .Build();
+        }
+        else if (Assembly.GetEntryAssembly()?.GetName().Name == "Modzt.CLI" && Environment.GetEnvironmentVariable("USERNAME") != "Allister")
+        {
+            Configuration = new ConfigurationBuilder()
+            .AddJsonFile("config.json", optional: true)
+            .Build();
+        }
+        else
+        {
+            Configuration = new ConfigurationBuilder()
+            .AddJsonFile("config.json", optional: true)
+            .Build();
+        }
+
+        HttpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Modzy.NET/0.1");
     }
     public Runtime(CancellationToken ct)
     {
@@ -26,19 +46,34 @@ public abstract class Runtime
     #endregion
 
     #region Properties
+
+    public static Assembly EntryAssembly { get; } = Assembly.GetEntryAssembly()!;
     
+    public static DirectoryInfo AssemblyDirectory { get; } = new DirectoryInfo(EntryAssembly.Location);
+
+    public static Version AssemblyVersion { get; } = EntryAssembly.GetName().Version!;
+
+    public static DirectoryInfo CurrentDirectory { get; } = new DirectoryInfo(Directory.GetCurrentDirectory());
+
+    public static IConfigurationRoot Configuration { get; protected set; }
+
     public static Logger Logger { get; protected set; }
 
     public static CancellationTokenSource Cts { get; } = new CancellationTokenSource();
 
     public static CancellationToken Ct { get; } = Cts.Token;
 
+    public static HttpClient HttpClient { get; } = new HttpClient();
+
     public static string YY = DateTime.Now.Year.ToString().Substring(2, 2);
 
     public bool Initialized { get; protected set; }
 
-    public CancellationToken CancellationToken { get; protected set; }
+    public static bool IsKubernetesPod { get; }
 
+    public static bool IsAzureFunction { get; set; }
+
+    public CancellationToken CancellationToken { get; protected set; }
     #endregion
 
     #region Methods

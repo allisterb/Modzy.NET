@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
+﻿namespace Modzy.CLI;
 
-namespace Modzy.CLI;
+using CommandLine;
+using CommandLine.Text;
 
 #region Enums
 public enum ExitResult
@@ -19,4 +15,97 @@ public enum ExitResult
     UNKNOWN_ERROR = 7
 }
 #endregion
+
+class Program : Runtime
+{
+    #region Constructor
+    static Program()
+    {
+        AppDomain.CurrentDomain.UnhandledException += Program_UnhandledException;
+        foreach (var t in OptionTypes)
+        {
+            OptionTypesMap.Add(t.Name, t);
+        }
+        
+    }
+    #endregion
+
+    #region Entry point
+    static void Main(string[] args)
+    {
+        if (args.Contains("--debug"))
+        {
+            SetLogger(new SerilogLogger(console: true, debug: true));
+            Info("Debug mode set.");
+        }
+        else
+        {
+            SetLogger(new SerilogLogger(console: true, debug: false));
+        }
+        PrintLogo();
+        ParserResult<object> result = new Parser().ParseArguments<Options, ApiOptions, PingOptions, EndpointsOptions, SchemaOptions, VerticesOptions,BuiltinOptions>(args);
+        result.WithParsed<ApiOptions>(o =>
+        {
+            
+        });
+    }
+    #endregion
+
+    #region Properties
+    private static FigletFont Font { get; } = FigletFont.Load("chunky.flf");
+
+    static Type[] OptionTypes = { typeof(Options), typeof(ApiOptions), typeof(PingOptions), typeof(EndpointsOptions),
+            typeof(SchemaOptions), typeof(VerticesOptions)};
+    static Dictionary<string, Type> OptionTypesMap { get; } = new Dictionary<string, Type>();
+    #endregion
+
+    #region Methods
+    static void PrintLogo()
+    {
+        Con.Write(new FigletText(Font, "Modzy.NET").LeftAligned().Color(Spectre.Console.Color.OrangeRed1));
+        Con.Write(new Text($"v{AssemblyVersion.ToString(3)}").LeftAligned());
+        //CO.WriteLine(FiggleFonts.Chunky.Render("TigerGraph.NET"), Color.OrangeRed);
+        //CO.WriteLine("v{0}", ApiClient.AssemblyVersion.ToString(3), Color.OrangeRed);
+    }
+
+    public static void Exit(ExitResult result)
+    {
+
+        if (Cts != null && !Cts.Token.CanBeCanceled)
+        {
+            Cts.Cancel();
+            Cts.Dispose();
+        }
+        Environment.Exit((int)result);
+    }
+
+    static HelpText GetAutoBuiltHelpText(ParserResult<object> result)
+    {
+        return HelpText.AutoBuild(result, h =>
+        {
+            h.AddOptions(result);
+            return h;
+        },
+        e =>
+        {
+            return e;
+        });
+    }
+    #endregion
+
+    #region Event Handlers
+    private static void Program_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        Error((Exception)e.ExceptionObject, "Unhandled runtime error occurred. TigerGraph.NET CLI will now shutdown.");
+        Exit(ExitResult.UNHANDLED_EXCEPTION);
+    }
+
+    private static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
+    {
+        Info("Ctrl-C pressed. Exiting.");
+        Cts.Cancel();
+        Exit(ExitResult.SUCCESS);
+    }
+    #endregion
+}
 

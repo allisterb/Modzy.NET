@@ -8,7 +8,7 @@ namespace Modzy
 {
     public class SerilogLogger : Logger
     {
-        public SerilogLogger(bool console = false, string logFileName = null, bool debug = false)
+        public SerilogLogger(bool console = false, string logFileName = "", bool debug = false)
         {
             Config = new LoggerConfiguration();
             if (console)
@@ -30,8 +30,7 @@ namespace Modzy
 
         public SerilogLogger() : this(Log.Logger) { }
 
-        public LoggerConfiguration Config { get; protected set; }
-
+        public LoggerConfiguration? Config { get; protected set; }
         public ILogger Logger { get; protected set; }
 
         [DebuggerStepThrough]
