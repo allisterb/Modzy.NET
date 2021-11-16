@@ -62,10 +62,8 @@ class Program : Runtime
     #region Methods
     static void PrintLogo()
     {
-        Con.Write(new FigletText(Font, "Modzy.NET").LeftAligned().Color(Spectre.Console.Color.OrangeRed1));
+        Con.Write(new FigletText(Font, "Modzy.NET").LeftAligned().Color(Color.OrangeRed1));
         Con.Write(new Text($"v{AssemblyVersion.ToString(3)}").LeftAligned());
-        //CO.WriteLine(FiggleFonts.Chunky.Render("TigerGraph.NET"), Color.OrangeRed);
-        //CO.WriteLine("v{0}", ApiClient.AssemblyVersion.ToString(3), Color.OrangeRed);
     }
 
     public static void Exit(ExitResult result)

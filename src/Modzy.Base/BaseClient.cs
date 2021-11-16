@@ -1,24 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-
-
-///using Modzy.Models;
-
-namespace Modzy;
+﻿namespace Modzy;
 
 public abstract class BaseClient : Runtime, IApiClient
 {
     #region Constructors
-    public BaseClient(string token, Uri restServerUrl, Uri gsqlServerUrl, string user, string pass) : base()
+    public BaseClient(string apiKey, Uri baseUrl) : base()
     {
-        Token = token ?? throw new ArgumentException("Could not get the TigerGraph access token.");
-        RestServerUrl = restServerUrl ?? throw new ArgumentException("Could not get the TigerGraph REST++ server URL.");
-        GsqlServerUrl = gsqlServerUrl ?? throw new ArgumentException("Could not get the TigerGraph GSQL server URL.");
-        User = user ?? throw new ArgumentException("Could not get the TigerGraph user name.");
-        Pass = pass ?? throw new ArgumentException("Could not get the TigerGraph user password.");
-        Info("Initialized REST++ client for {0} and GSQL client for {1}.", RestServerUrl, GsqlServerUrl);
+        ApiKey = apiKey;
+        BaseUrl = baseUrl;
+        HttpClient.DefaultRequestHeaders.Add("Authorization", "ApiKey " + apiKey);
+        HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));   
+        Info("Initialized HTTP client for Modzy API base url {0}.", BaseUrl);
     }
     #endregion
 
@@ -29,16 +20,9 @@ public abstract class BaseClient : Runtime, IApiClient
     #endregion
 
     #region Properties
-    public string Token { get; }
+    public string ApiKey { get; }
 
-    public Uri RestServerUrl { get; set; }
-
-    public Uri GsqlServerUrl { get; set; }
-
-    public string User { get; set; }
-
-    public string Pass { get; set; }
-
+    public Uri BaseUrl { get; }
     #endregion
 
     #region Methods

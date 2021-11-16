@@ -55,7 +55,9 @@ public abstract class Runtime
 
     public static DirectoryInfo CurrentDirectory { get; } = new DirectoryInfo(Directory.GetCurrentDirectory());
 
-    public static IConfigurationRoot Configuration { get; protected set; }
+    public static IConfigurationRoot Configuration { get; set; }
+
+    public static string Config(string i) => Configuration[i];
 
     public static Logger Logger { get; protected set; }
 
