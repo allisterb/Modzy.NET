@@ -75,7 +75,8 @@ public class ApiClient : BaseClient
         else return uri!;
     }
 
-    public async Task<List<Model>> GetAllModels() => await RestHttpGetAsync<List<Model>>("models?per-page=1000");
-    
+    public async Task<List<ModelListing>> GetAllModels() => await RestHttpGetAsync<List<ModelListing>>("models?per-page=1000");
+
+    public async Task<Model> GetModel(string modelId) => await RestHttpGetAsync<Model>($"models/{modelId}");
     #endregion
 }

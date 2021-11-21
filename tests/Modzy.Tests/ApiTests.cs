@@ -38,6 +38,15 @@ namespace Modzy.Tests
             var models = c.GetAllModels().Result;
             Assert.NotNull(c.ApiKey);
             Assert.NotNull(c.BaseUrl);
+            Assert.NotEmpty(models);
+        }
+
+        [Fact]
+        public void CanGetModel()
+        {
+            ApiClient c = new ApiClient();
+            var model = c.GetModel("z8qms2pgvx").Result;
+            Assert.NotNull(model);
         }
     }
 }
