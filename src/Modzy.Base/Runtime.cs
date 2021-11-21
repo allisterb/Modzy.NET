@@ -46,15 +46,6 @@ public abstract class Runtime
     #endregion
 
     #region Properties
-
-    public static Assembly EntryAssembly { get; } = Assembly.GetEntryAssembly()!;
-    
-    public static DirectoryInfo AssemblyDirectory { get; } = new DirectoryInfo(EntryAssembly.Location);
-
-    public static Version AssemblyVersion { get; } = EntryAssembly.GetName().Version!;
-
-    public static DirectoryInfo CurrentDirectory { get; } = new DirectoryInfo(Directory.GetCurrentDirectory());
-
     public static IConfigurationRoot Configuration { get; set; }
 
     public static string Config(string i) => Configuration[i];

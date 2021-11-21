@@ -35,7 +35,7 @@ namespace Modzy.Tests
         public void CanGetModels()
         {
             ApiClient c = new ApiClient();
-            var models = c.GetModels().Result;
+            var models = c.GetAllModels().Result;
             Assert.NotNull(c.ApiKey);
             Assert.NotNull(c.BaseUrl);
         }
