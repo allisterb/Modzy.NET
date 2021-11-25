@@ -48,5 +48,23 @@ namespace Modzy.Tests
             var model = c.GetModel("z8qms2pgvx").Result;
             Assert.NotNull(model);
         }
+
+        [Fact]
+        public void CanGetModelVersions()
+        {
+            ApiClient c = new ApiClient();
+            var model = c.GetModel("z8qms2pgvx").Result;
+            var v = c.GetModelVersions(model.ModelId).Result;
+            Assert.NotNull(model);
+            Assert.NotNull(v);
+        }
+
+        [Fact]
+        public void CanGetSampleModelInput()
+        {
+            ApiClient c = new ApiClient();
+            var s = c.GetModelSampleInput("z8qms2pgvx", "4.1.0").Result;
+            Assert.NotNull(s);
+        }
     }
 }
