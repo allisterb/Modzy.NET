@@ -43,7 +43,7 @@ class Program : Runtime
             SetLogger(new SerilogLogger(console: true, debug: false));
         }
         PrintLogo();
-        ParserResult<object> result = new Parser().ParseArguments<Options, ApiOptions, PingOptions, EndpointsOptions, SchemaOptions, VerticesOptions,BuiltinOptions>(args);
+        ParserResult<object> result = new Parser().ParseArguments<Options, ApiOptions, ModelsOptions>(args);
         result.WithParsed<ApiOptions>(o =>
         {
             
@@ -52,10 +52,10 @@ class Program : Runtime
     #endregion
 
     #region Properties
+    private static Version AssemblyVersion { get; } = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version!;
     private static FigletFont Font { get; } = FigletFont.Load("chunky.flf");
 
-    static Type[] OptionTypes = { typeof(Options), typeof(ApiOptions), typeof(PingOptions), typeof(EndpointsOptions),
-            typeof(SchemaOptions), typeof(VerticesOptions)};
+    static Type[] OptionTypes = { typeof(Options), typeof(ApiOptions), typeof(ModelsOptions)};
     static Dictionary<string, Type> OptionTypesMap { get; } = new Dictionary<string, Type>();
     #endregion
 

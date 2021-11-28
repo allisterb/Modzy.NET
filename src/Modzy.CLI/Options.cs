@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-
-using CommandLine;
+﻿using CommandLine;
 using CommandLine.Text;
 
 namespace Modzy.CLI
@@ -39,67 +35,15 @@ namespace Modzy.CLI
 
     public class ApiOptions : Options
     {
-        [Option('t', "token", Required = false, HelpText = "Your TigerGraph server instance access token. If none is specified then use the environment variable TG_TOKEN.")]
-        public string? Token { get; set; }
-
-        [Option('r', "rest", Required = false, HelpText = "Your TigerGraph REST++ server instance URL. If none is specified then use the environment variable TG_REST_SERVER_URL.")]
-        public string? RestServerUrl { get; set; }
-
-        [Option('q', "gsql", Required = false, HelpText = "Your TigerGraph GSQL server instance URL. If none is specified then use the environment variable TG_GSQL_SERVER_URL.")]
-        public string? GsqlServerUrl { get; set; }
-
-        [Option('u', "user", Required = false, HelpText = "Your TigerGraph server user name. If none is specified then use the environment variable TG_USR.")]
-        public string? User { get; set; }
-
-        [Option("pass", Required = false, HelpText = "Your TigerGraph server user password. If none is specified then use the environment variable TG_PASS.")]
-        public string? Pass { get; set; }
+        [Option("key", Required = false, HelpText = "Your Modzy API key. If none is specified then use the environment variable MODZY_APIKEY.")]
+        public string? ApiKey { get; set; }
     }
 
-    [Verb("ping", HelpText = "Ping a TigerGraph server instance using the specified server URL and access token.")]
-    public class PingOptions : ApiOptions {}
-
-    [Verb("endpoints", HelpText = "Get the endpoints of the specified server.")]
-    public class EndpointsOptions : ApiOptions {}
-
-    [Verb("schema", HelpText = "Get the schema of the specified graph or of a specified vertex or edge type.")]
-    public class SchemaOptions : ApiOptions 
+    [Verb("models", HelpText = "Work with models.")]
+    public class ModelsOptions : ApiOptions 
     {
-        [Option('g', "graph", Required = false, Default = "MyGraph", HelpText = "The name of the graph.")]
-        public string? Graph { get; set; }
+        [Option('l', "list", Required = false, HelpText = "List all models")]
+        public bool List { get; set; }
 
-        [Option('v', "vertex", Required = false, HelpText = "The vertex type to retrieve the schema for.")]
-        public string? Vertex { get; set; }
-
-        [Option('e', "edge", Required = false, HelpText = "The edge type to retrieve the schema for.")]
-        public string? Edge { get; set; }
-    }
-
-    [Verb("vertices", HelpText = "Get the vertices of the specified graph of a specified vertex type and optionally with a specified vertex id.")]
-    public class VerticesOptions : ApiOptions
-    {
-        [Option('g', "graph", Required = false, Default = "MyGraph", HelpText = "The name of the graph.")]
-        public string? Graph { get; set; }
-
-        [Option('v', "vertex", Required = true, HelpText = "The vertex type to retrieve the data for.")]
-        public string? Vertex { get; set; }
-
-        [Option('i', "id", Required = false, HelpText = "A specific vertex or edge id to retrieve.")]
-        public string? Id { get; set; }
-
-        [Option('c', "count", Required = false, HelpText = "Only count the number of vertices of the specified type.")]
-        public bool Count { get; set; }
-    }
-    
-    [Verb("builtin", HelpText = "Execute a builtin function on the specified graph.")]
-    public class BuiltinOptions : ApiOptions
-    {
-        [Option('g', "graph", Required = false, Default = "MyGraph", HelpText = "The name of the graph.")]
-        public string? Graph { get; set; }
-
-        [Option('f', "func", Required = true, HelpText = "The name of the builtin function to execute.")]
-        public string? Fn { get; set; }
-
-        [Option('t', "function", Required = false, Default = "", HelpText = "The vertex or edge type to execute the function against.")]
-        public string? FnType { get; set; }
     }
 }

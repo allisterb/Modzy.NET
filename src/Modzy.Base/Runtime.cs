@@ -36,7 +36,7 @@ public abstract class Runtime
             .Build();
         }
 
-        HttpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Modzy.NET/0.1");
+        DefaultHttpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Modzy.NET/0.1");
     }
     public Runtime(CancellationToken ct)
     {
@@ -56,7 +56,7 @@ public abstract class Runtime
 
     public static CancellationToken Ct { get; } = Cts.Token;
 
-    public static HttpClient HttpClient { get; } = new HttpClient();
+    public static HttpClient DefaultHttpClient { get; } = new HttpClient();
 
     public static string YY = DateTime.Now.Year.ToString().Substring(2, 2);
 

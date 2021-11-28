@@ -1,4 +1,4 @@
-
+using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
@@ -32,13 +32,19 @@ namespace Modzy.Tests
         }
 
         [Fact]
-        public void CanGetModels()
+        public void CanGetAllModels()
         {
             ApiClient c = new ApiClient();
             var models = c.GetAllModels().Result;
             Assert.NotNull(c.ApiKey);
             Assert.NotNull(c.BaseUrl);
             Assert.NotEmpty(models);
+            List<Model> models_ = new List<Model>();
+            foreach (var model in models)
+            {
+                models_.Add(c.GetModel(model.ModelId).Result);
+            }
+            Assert.NotEmpty(models_);
         }
 
         [Fact]

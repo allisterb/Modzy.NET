@@ -6,6 +6,8 @@
     <ImplicitUsings>diable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UserSecretsId>c0697968-04fe-49d7-a785-aaa817e38935</UserSecretsId>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

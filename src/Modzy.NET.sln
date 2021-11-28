@@ -11,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Modzy.Api", "Modzy.Api\Modz
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Modzy.Tests", "..\tests\Modzy.Tests\Modzy.Tests.csproj", "{1ECC60C7-3BA1-45AE-9C90-E1753A64E5E4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Modzy.Web", "Modzy.Web\Modzy.Web.csproj", "{A1AD1EFB-5298-49A7-976F-9D73FCC62B3F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Modzy.Web", "Modzy.Web\Modzy.Web.csproj", "{A1AD1EFB-5298-49A7-976F-9D73FCC62B3F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

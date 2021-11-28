@@ -3,7 +3,7 @@
 public class ApiClient : BaseClient
 {
     #region Constructors
-    public ApiClient(string apiKey, Uri baseUrl) : base(apiKey, baseUrl)
+    public ApiClient(string apiKey, Uri baseUrl, HttpClient? c = null) : base(apiKey, baseUrl, c)
     {
         Initialized = true;
     }
@@ -12,9 +12,13 @@ public class ApiClient : BaseClient
     #endregion
 
     #region Implemented members
-    public override async Task<T> RestHttpGetAsync<T>(string query)
+    public override async Task<string> RestHttpGetStringAsync(string query)
     {
-        var response = await HttpClient.GetAsync(BaseUrl + query);
+        var request = new HttpRequestMessage(HttpMethod.Get, BaseUrl.ToString() + query);
+        request.Headers.Add("Access-Control-Request-Method", "GET");
+        request.Headers.Add("Access-Control-Request-Headers", "Authorization");
+        request.Headers.Add("Origin", "https://localhost:7057");
+        var response = await RestClient.SendAsync(request);
         Debug("HTTP GET: {0}", BaseUrl.ToString() + query);
         if (response is null)
         {
@@ -30,16 +34,15 @@ public class ApiClient : BaseClient
             {
                 var json = await response.Content.ReadAsStringAsync();
                 Debug("JSON response: {0}", json);
-                return JsonConvert.DeserializeObject<T>(json) ?? throw new Exception($"Did not successfully deserialize JSON response as type {typeof(T).Name}");
-            }
+                return json;            }
         }
     }
 
-    public override async Task<T2> RestHttpPostAsync<T1, T2>(string query, T1 data)
+    public override async Task<string> RestHttpPostStringAsync<T1>(string query, T1 data)
     {
         var c = JsonConvert.SerializeObject(data);
         var content = new StringContent(c, Encoding.UTF8, "application/json");
-        var response = await HttpClient.PostAsync(BaseUrl + query, content);
+        var response = await DefaultHttpClient.PostAsync(BaseUrl + query, content);
         if (response is null)
         {
             throw new Exception("The response for the HTTP POST request is null.");
@@ -54,36 +57,15 @@ public class ApiClient : BaseClient
             {
                 var json = await response.Content.ReadAsStringAsync();
                 Debug("JSON response: {0}", json);
-                return JsonConvert.DeserializeObject<T2>(json) ?? throw new Exception($"Did not successfully deserialize JSON response as type {typeof(T2).Name}");
+                return json;
             }
         }
     }
 
+    public override async Task<T> RestHttpGetAsync<T>(string query) => JsonConvert.DeserializeObject<T>(await RestHttpGetStringAsync(query)) ?? throw new Exception($"Did not successfully read JSON response.");
+
+    public override async Task<T2> RestHttpPostAsync<T1, T2>(string query, T1 data)=> JsonConvert.DeserializeObject<T2>(await RestHttpPostStringAsync(query, data)) ?? throw new Exception($"Did not successfully read JSON response.");
+    
     #endregion
 
-    #region Properties
-
-    #endregion
-
-    #region Methods
-    private static Uri GetUri(string u)
-    {
-        if (!Uri.TryCreate(u, UriKind.Absolute, out Uri? uri))
-        {
-            throw new ArgumentException($"The string {u} is not a valid URI.");
-        }
-        else return uri!;
-    }
-
-    public async Task<List<ModelListing>> GetAllModels() => await RestHttpGetAsync<List<ModelListing>>("models?per-page=1000");
-
-    public async Task<Model> GetModel(string modelId) => await RestHttpGetAsync<Model>($"models/{modelId}");
-
-    public async Task<MinimumProcessingEnginesSum> GetMinimumProcessingEnginesSum() => await RestHttpGetAsync<MinimumProcessingEnginesSum>("models/processing-engines");
-
-    public async Task<List<ModelVersion>> GetModelVersions(string modelId) => await RestHttpGetAsync<List<ModelVersion>>($"models/{modelId}/versions");
-
-    public async Task<ModelSampleInput> GetModelSampleInput(string modelId, string version) => await RestHttpGetAsync<ModelSampleInput>($"models/{modelId}/versions/{version}/sample-input");
-
-    #endregion
 }

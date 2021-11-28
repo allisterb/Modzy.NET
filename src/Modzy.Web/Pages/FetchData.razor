@@ -1,4 +1,9 @@
 ﻿@page "/fetchdata"
+
+@using BlazorGrid.Abstractions
+@using BlazorGrid.Components
+
+@using Modzy;
 @inject HttpClient Http
 
 <PageTitle>Weather forecast</PageTitle>
@@ -34,16 +39,45 @@ else
             }
         </tbody>
     </table>
+    <div style="height: 400px;">
+    <BlazorGrid TRow="ModelViewModel"  Provider="LoadData">
+        <GridCol For="() => context.Name" Caption="Name" />
+        <GridCol For="() => context.Description" Caption="Description" />
+    </BlazorGrid>
+</div>
 }
 
 @code {
     private WeatherForecast[]? forecasts;
-
+    private List<ModelListing>? _models;
+    private List<ModelViewModel>? models;
     protected override async Task OnInitializedAsync()
     {
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://app.modzy.com/api/models?per-page=50");
+        request.Headers.Add("Authorization", "ApiKey");
+        using var response = await Http.SendAsync(request);
+
+        //var _client = bl!.client;
         forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("sample-data/weather.json");
+        models = new List<ModelViewModel>();
+        //ApiClient.AddCorsPreflight();
+        //_models = await _client.GetAllModels();
+        //models.AddRange(_models.Select(m => new ModelViewModel() {Name = m.ModelId}));
     }
 
+    private async ValueTask<BlazorGridResult<ModelViewModel>> LoadData(BlazorGridRequest request, CancellationToken cancellationToken)
+    {
+
+        //var m = ;
+
+        // Deserialize the Json response
+        //var json = await response.Content.ReadAsStringAsync();
+        
+        
+        var result = new BlazorGridResult<ModelViewModel>() { Data = models, TotalCount = 1};
+
+        return result;
+    }
     public class WeatherForecast
     {
         public DateTime Date { get; set; }
@@ -53,5 +87,12 @@ else
         public string? Summary { get; set; }
 
         public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    }
+
+    public class ModelViewModel
+    {
+        public string? Name { get; set; }
+
+        public string? Description { get; set; }
     }
 }
