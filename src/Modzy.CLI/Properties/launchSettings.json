@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Modzy.CLI": {
+      "commandName": "Project",
+      "commandLineArgs": "models",
+      "environmentVariables": {
+        "MODZY_APIKEY": "qBL0HO1JmSXy43E3Hso6.GoXIos62w9ld2Ir8YMrn"
+      }
+    }
+  }
+}

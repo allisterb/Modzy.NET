@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Modzy.Api\Modzy.Api.csproj" />
     <ProjectReference Include="..\Modzy.Base\Modzy.Base.csproj" />
   </ItemGroup>
 

@@ -3,6 +3,7 @@
 using CommandLine;
 using CommandLine.Text;
 
+using Modzy;
 #region Enums
 public enum ExitResult
 {
@@ -46,7 +47,15 @@ class Program : Runtime
         ParserResult<object> result = new Parser().ParseArguments<Options, ApiOptions, ModelsOptions>(args);
         result.WithParsed<ApiOptions>(o =>
         {
-            
+            if (!string.IsNullOrEmpty(o.ApiKey))
+            {
+                ApiKey = o.ApiKey!;
+            }
+            else
+            {
+                ApiKey = Config("MODZY_API_KEY");
+            }
+            ApiClient = new ApiClient(ApiKey, BaseUrl);
         });
     }
     #endregion
@@ -55,6 +64,12 @@ class Program : Runtime
     private static Version AssemblyVersion { get; } = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version!;
     private static FigletFont Font { get; } = FigletFont.Load("chunky.flf");
 
+    static ApiClient? ApiClient { get; set; }
+
+    static Uri BaseUrl { get; } = new Uri("https://app.modzy.com/api/");
+
+    static string ApiKey { get; set; } = "";
+    
     static Type[] OptionTypes = { typeof(Options), typeof(ApiOptions), typeof(ModelsOptions)};
     static Dictionary<string, Type> OptionTypesMap { get; } = new Dictionary<string, Type>();
     #endregion

@@ -20,10 +20,10 @@ public abstract class Runtime
         else if (Assembly.GetEntryAssembly()?.GetName().Name == "Modzy.CLI" && Environment.GetEnvironmentVariable("USERNAME") == "Allister")
         {
             Configuration = new ConfigurationBuilder()
-                .AddUserSecrets("f3ed0dc7-f978-44ae-8add-9e5bfcf8fa8a")
+                .AddUserSecrets("c0697968-04fe-49d7-a785-aaa817e38935")
                 .Build();
         }
-        else if (Assembly.GetEntryAssembly()?.GetName().Name == "Modzt.CLI" && Environment.GetEnvironmentVariable("USERNAME") != "Allister")
+        else if (Assembly.GetEntryAssembly()?.GetName().Name == "Modzy.CLI" && Environment.GetEnvironmentVariable("USERNAME") != "Allister")
         {
             Configuration = new ConfigurationBuilder()
             .AddJsonFile("config.json", optional: true)
