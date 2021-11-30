@@ -1,5 +1,6 @@
 ﻿namespace Modzy;
 
+using System.Threading.Tasks;
 public abstract class BaseClient : Runtime, IApiClient
 {
     #region Constructors
@@ -8,6 +9,10 @@ public abstract class BaseClient : Runtime, IApiClient
         ApiKey = apiKey;
         BaseUrl = baseUrl;
         RestClient = client ?? DefaultHttpClient;
+        if (RestClient.DefaultRequestHeaders.Contains("Authorization"))
+        {
+            RestClient.DefaultRequestHeaders.Remove("Authorization");
+        }
         RestClient.DefaultRequestHeaders.Add("Authorization", "ApiKey " + apiKey);
         Info("Initialized HTTP client for Modzy API base url {0}.", BaseUrl);
     }
@@ -40,7 +45,7 @@ public abstract class BaseClient : Runtime, IApiClient
         }
         else return uri!;
     }
-    public async Task<List<ModelListing>> GetAllModels() => await RestHttpGetAsync<List<ModelListing>>("models?per-page=1000");
+    public async Task<List<ModelListing>> GetModelsListing() => await RestHttpGetAsync<List<ModelListing>>("models?per-page=1000");
 
     public async Task<Model> GetModel(string modelId) => await RestHttpGetAsync<Model>($"models/{modelId}");
 
@@ -50,5 +55,6 @@ public abstract class BaseClient : Runtime, IApiClient
 
     public async Task<ModelSampleInput> GetModelSampleInput(string modelId, string version) => await RestHttpGetAsync<ModelSampleInput>($"models/{modelId}/versions/{version}/sample-input");
 
+    
     #endregion
 }

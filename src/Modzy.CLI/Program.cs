@@ -1,5 +1,6 @@
 ﻿namespace Modzy.CLI;
 
+using System.Threading.Tasks;
 using CommandLine;
 using CommandLine.Text;
 
@@ -54,8 +55,13 @@ class Program : Runtime
             else
             {
                 ApiKey = Config("MODZY_API_KEY");
+                Info("Using Modzy API key from configuration store.");
             }
             ApiClient = new ApiClient(ApiKey, BaseUrl);
+        })
+        .WithParsed<ModelsOptions>(o =>
+        {
+            ListModels(o);
         });
     }
     #endregion
@@ -75,10 +81,30 @@ class Program : Runtime
     #endregion
 
     #region Methods
+    static void ListModels(ModelsOptions o)
+    {
+        var modelsListing = ApiClient!.GetModelsListing().Result.ToArray();
+        var models = new Model[modelsListing.Length];
+        Info("Got {0} models.", modelsListing.Length);
+        var table = new Table();
+        table.AddColumns("[green]Id[/]", "[green]Name[/]", "[green]Description[/]", "[green]Author[/]", "[green]Versions[/]");
+        using (var op = Begin("Fetching details for {0} models", modelsListing.Length))
+        {
+            Parallel.For(0, modelsListing.Length, i =>
+            {
+                models[i] = ApiClient.GetModel(modelsListing[i].ModelId).Result;
+                var model = models[i];
+                table.AddRow(model.ModelId, model.Name, model.Description, model.Author, model.Versions.Any() ? model.Versions.Aggregate((p, s) => p + "," + s) : "");
+                table.AddEmptyRow();
+            });
+            op.Complete();
+        }
+        Con.Write(table);
+    }
     static void PrintLogo()
     {
         Con.Write(new FigletText(Font, "Modzy.NET").LeftAligned().Color(Color.OrangeRed1));
-        Con.Write(new Text($"v{AssemblyVersion.ToString(3)}").LeftAligned());
+        Con.Write(new Text($"v{AssemblyVersion.ToString(3)}\n").LeftAligned());
     }
 
     public static void Exit(ExitResult result)
@@ -109,7 +135,7 @@ class Program : Runtime
     #region Event Handlers
     private static void Program_UnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
-        Error((Exception)e.ExceptionObject, "Unhandled runtime error occurred. TigerGraph.NET CLI will now shutdown.");
+        Error((Exception)e.ExceptionObject, "Unhandled runtime error occurred. Modzy.NET CLI will now shutdown.");
         Exit(ExitResult.UNHANDLED_EXCEPTION);
     }
 
@@ -119,6 +145,10 @@ class Program : Runtime
         Cts.Cancel();
         Exit(ExitResult.SUCCESS);
     }
+    #endregion
+
+    #region Fields
+    private static object _uilock = new object();
     #endregion
 }
 
