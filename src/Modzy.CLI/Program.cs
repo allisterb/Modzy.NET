@@ -28,7 +28,7 @@ class Program : Runtime
         {
             OptionTypesMap.Add(t.Name, t);
         }
-        
+        System.Console.OutputEncoding = Encoding.UTF8;
     }
     #endregion
 
@@ -61,7 +61,22 @@ class Program : Runtime
         })
         .WithParsed<ModelsOptions>(o =>
         {
-            ListModels(o);
+            if (o.List)
+            {
+                ListModels(o);
+            }
+            else if (o.Inspect)
+            {
+                if (!string.IsNullOrEmpty(o.ModelId))
+                {
+                    InspectModel(o);
+                }
+                else
+                {
+                    Error("You must specify a model ID to inspect.");
+                    Exit(ExitResult.INVALID_OPTIONS);
+                }
+            }
         });
     }
     #endregion
@@ -69,37 +84,77 @@ class Program : Runtime
     #region Properties
     private static Version AssemblyVersion { get; } = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version!;
     private static FigletFont Font { get; } = FigletFont.Load("chunky.flf");
-
     static ApiClient? ApiClient { get; set; }
-
     static Uri BaseUrl { get; } = new Uri("https://app.modzy.com/api/");
-
     static string ApiKey { get; set; } = "";
-    
     static Type[] OptionTypes = { typeof(Options), typeof(ApiOptions), typeof(ModelsOptions)};
     static Dictionary<string, Type> OptionTypesMap { get; } = new Dictionary<string, Type>();
+    static string? ModelId { get; set; }
     #endregion
 
     #region Methods
     static void ListModels(ModelsOptions o)
     {
-        var modelsListing = ApiClient!.GetModelsListing().Result.ToArray();
-        var models = new Model[modelsListing.Length];
+        ModelListing[]? modelsListing = Con.Status().Spinner(Spinner.Known.Dots).Start("Fetching models listing...", ctx => ApiClient!.GetModelsListing().Result.ToArray());
         Info("Got {0} models.", modelsListing.Length);
+        var models = new Model[modelsListing.Length];
         var table = new Table();
-        table.AddColumns("[green]Id[/]", "[green]Name[/]", "[green]Description[/]", "[green]Author[/]", "[green]Versions[/]");
+        table.AddColumns("[green]Id[/]", "[green]Name[/]", "[green]Description[/]", "[green]Author[/]", "[green]Versions[/]", "[green]Latest Version[/]");
         using (var op = Begin("Fetching details for {0} models", modelsListing.Length))
         {
-            Parallel.For(0, modelsListing.Length, i =>
+            AnsiConsole.Progress().Start(ctx =>
             {
-                models[i] = ApiClient.GetModel(modelsListing[i].ModelId).Result;
-                var model = models[i];
-                table.AddRow(model.ModelId, model.Name, model.Description, model.Author, model.Versions.Any() ? model.Versions.Aggregate((p, s) => p + "," + s) : "");
-                table.AddEmptyRow();
+                var task1 = ctx.AddTask("[green]Fetching details[/]");
+                Parallel.For(0, modelsListing.Length, i =>
+                {
+                    models[i] = ApiClient!.GetModel(modelsListing[i].ModelId).Result;
+                    lock (_uilock)
+                    {
+                        var model = models[i];
+                        table.AddRow(model.ModelId, model.Name, model.Description, model.Author,
+                            model.Versions.Any() ? model.Versions.Aggregate((p, s) => p + "," + s) : "", model.LatestVersion);
+                        table.AddEmptyRow();
+                        task1.Increment(100.0 / modelsListing.Length);
+                    }
+        
+                });
             });
             op.Complete();
         }
         Con.Write(table);
+        
+    }
+
+    static void InspectModel(ModelsOptions o)
+    {
+        var model = Con.Status().Spinner(Spinner.Known.Dots).Start($"Fetching model details for model {o.ModelId!}...", ctx => ApiClient!.GetModel(o.ModelId!).Result);
+        if (model == null)
+        {
+            Error("Could not find model with ID {0}.", o.ModelId!);
+            Exit(ExitResult.ERROR_IN_RESULTS);
+        }
+        Info("Model name is {0}, latest version is {1}.", model!.Name, model!.LatestVersion);   
+        var sample = Con.Status().Spinner(Spinner.Known.Dots).Start($"Fetching input details for model {o.ModelId} at version {model!.LatestVersion}...", ctx => ApiClient!.GetModelSampleInput(o.ModelId!, model!.LatestVersion).Result);
+        if (sample == null)
+        {
+            {
+                Error("Could not get input details for model with ID {0}.", o.ModelId!);
+                Exit(ExitResult.ERROR_IN_RESULTS);
+            }
+        }
+        var tree = new Tree($"{model.Name}({model.ModelId})");
+        var metadata = tree.AddNode("[yellow]Metadata[/]");
+        metadata.AddNode($"[green]Description:[/] {model.Description}");
+        metadata.AddNode($"[green]Author:[/] {model.Author}");
+        var tags = model.Tags.Any() ? model.Tags.Select(k => k.Name).Aggregate((p, s) => p + ", " + s) : "";
+        metadata.AddNode($"[green]Tags:[/] {tags}");
+        var inputs = tree.AddNode("[yellow]Inputs[/]");
+        foreach(var s in sample!.Input.Sources )
+        {
+            var sn = inputs.AddNode($"[red]{s.Key}[/]");
+            sn.AddNodes(s.Value.Keys.Select(k => ApiClient.InputTypeFromInputFilename(k).ToString()));
+        }
+        Con.Write(tree);
     }
     static void PrintLogo()
     {

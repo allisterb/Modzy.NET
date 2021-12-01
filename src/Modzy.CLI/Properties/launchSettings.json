@@ -2,7 +2,7 @@
   "profiles": {
     "Modzy.CLI": {
       "commandName": "Project",
-      "commandLineArgs": "models --list",
+      "commandLineArgs": "models -m pn7pa4retx --inspect",
       "environmentVariables": {
         "MODZY_APIKEY": "qBL0HO1JmSXy43E3Hso6.GoXIos62w9ld2Ir8YMrn"
       }

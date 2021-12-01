@@ -42,8 +42,21 @@ namespace Modzy.CLI
     [Verb("models", HelpText = "Work with models.")]
     public class ModelsOptions : ApiOptions 
     {
-        [Option('l', "list", Required = false, HelpText = "List all models")]
+        [Option('l', "list", Required = false, HelpText = "List all models.")]
         public bool List { get; set; }
+
+        [Option("inspect", Required = false, HelpText = "Inspect a model with the specified model ID.")]
+        public bool Inspect { get; set; }
+
+        [Option('r', "run", Required = false, HelpText = "Run a model with the specified model ID.")]
+        public bool Run { get; set; }
+
+        [Option('i', "input", Required = false, HelpText = "Comma-delimited list of input files for a run operation.")]
+        public string? Input { get; set; }
+
+        [Value(0, Required = false)]
+        public string? ModelId { get; set; }
+
 
     }
 }

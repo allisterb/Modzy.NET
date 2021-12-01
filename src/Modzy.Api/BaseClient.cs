@@ -55,6 +55,33 @@ public abstract class BaseClient : Runtime, IApiClient
 
     public async Task<ModelSampleInput> GetModelSampleInput(string modelId, string version) => await RestHttpGetAsync<ModelSampleInput>($"models/{modelId}/versions/{version}/sample-input");
 
-    
+    public static InputType InputTypeFromInputFilename(string name)
+    {
+        name = name.ToLower();
+        if (name.EndsWith(".jpg") || name == "image")
+        {
+            return InputType.IMAGE;
+        }
+        else if (name.EndsWith(".mp4"))
+        { 
+            return InputType.VIDEO;
+        }
+        else if (name.EndsWith(".txt"))
+        {
+            return InputType.TEXT;
+        }
+        else if (name.EndsWith(".json"))
+        {
+            return InputType.JSON;
+        }
+        else if (name.EndsWith(".mp3"))
+        {
+            return InputType.AUDIO;
+        }
+        else
+        {
+            throw new Exception($"Could not determine input type from input file name {name}.");
+        }
+    }
     #endregion
 }
