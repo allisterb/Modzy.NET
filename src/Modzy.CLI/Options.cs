@@ -45,13 +45,13 @@ namespace Modzy.CLI
         [Option('l', "list", Required = false, HelpText = "List all models.")]
         public bool List { get; set; }
 
-        [Option("inspect", Required = false, HelpText = "Inspect a model with the specified model ID.")]
+        [Option('i', "inspect", Required = false, HelpText = "Inspect a model with the specified model ID.")]
         public bool Inspect { get; set; }
 
         [Option('r', "run", Required = false, HelpText = "Run a model with the specified model ID.")]
         public bool Run { get; set; }
 
-        [Option('i', "input", Required = false, HelpText = "Comma-delimited list of input files for a run operation.")]
+        [Option('f', "input-files", Required = false, HelpText = "Comma-delimited list of input files for a run operation.")]
         public string? Input { get; set; }
 
         [Option("version", Required = false, HelpText = "The model version.")]
@@ -71,7 +71,7 @@ namespace Modzy.CLI
         [Option('l', "list", Required = false, HelpText = "List all jobs.")]
         public bool List { get; set; }
 
-        [Option("inspect", Required = false, HelpText = "Inspect a job with the specified job ID.")]
+        [Option('i', "inspect", Required = false, HelpText = "Inspect a job with the specified job ID.")]
         public bool Inspect { get; set; }
 
         [Value(0, Required = false)]

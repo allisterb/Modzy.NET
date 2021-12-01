@@ -240,6 +240,11 @@ class Program : Runtime
         metadata.AddNode($"[green]Author:[/] {model.Author}");
         var tags = model.Tags.Any() ? model.Tags.Select(k => k.Name).Aggregate((p, s) => p + ", " + s) : "";
         metadata.AddNode($"[green]Tags:[/] {tags}");
+        var versions = metadata.AddNode("Versions");
+        foreach(var v in model.Versions)
+        {
+            versions.AddNode(v);
+        }
         var inputs = tree.AddNode("[yellow]Inputs[/]");
         foreach(var s in sample!.Input.Sources )
         {
@@ -352,9 +357,18 @@ class Program : Runtime
         var jobs = new Job[jobsListing.Length];
         var table = new Table();
         table.AddColumns("[green]Id[/]", "[green]Status[/]", "[green]Model[/]", "[green]Model Version[/]");
+        var getStatusText = (string s) =>
+        {
+            switch (s)
+            {
+                case "SUBMITTED": return "[purple]SUBMITTED[/]";
+                case "CANCELED": return "[yellow]CANCELLED[/]";
+                default: return s;
+            }
+        };
         foreach(var job in jobsListing)
         {
-            table.AddRow(job.JobIdentifier.ToString(), job.Status, job.Model.Identifier, job.Model.Version);
+            table.AddRow(job.JobIdentifier.ToString(), getStatusText(job.Status), job.Model.Identifier, job.Model.Version);
             table.AddEmptyRow();
         }
         Con.Write(table);        
@@ -362,12 +376,38 @@ class Program : Runtime
 
     static void InspectJob(JobsOptions o)
     {
-
+        var job = Con.Status().Spinner(Spinner.Known.Dots).Start($"Fetching job details for job {o.JobId!}...", ctx => ApiClient!.GetJob(o.JobId!).Result);
+        if (job == null)
+        {
+            Error("Could not find job with ID {0}.", o.JobId!);
+            Exit(ExitResult.ERROR_IN_RESULTS);
+        }
+        Info("Job {0} was submitted at {1}.", job!.JobIdentifier, job!.SubmittedAt);
+        var model = Con.Status().Spinner(Spinner.Known.Dots).Start($"Fetching model details for model {job!.Model.Identifier}...", ctx => ApiClient!.GetModel(job!.Model.Identifier).Result);
+        if (model == null)
+        {
+            Error("Could not find model with ID {0}.", job!.Model.Identifier);
+            Exit(ExitResult.ERROR_IN_RESULTS);
+        }
+        var tree = new Tree($"Job {job.JobIdentifier}");
+        var metadata = tree.AddNode("[yellow]Model metadata[/]");
+        metadata.AddNode($"[green]Submitted:[/] {job!.SubmittedAt}");
+        metadata.AddNode($"[green]Status:[/] {job!.Status}");
+        var tags = model!.Tags.Any() ? model.Tags.Select(k => k.Name).Aggregate((p, s) => p + ", " + s) : "";
+        metadata.AddNode($"[green]Tags:[/] {tags}");
+        //var inputs = tree.AddNode("[yellow]Inputs[/]");
+        //foreach (var s in sample!.Input.Sources)
+        //{
+        //    var sn = inputs.AddNode($"[red]{s.Key}[/]");
+        //    sn.AddNodes(s.Value.Keys.Select(k => ApiClient.InputTypeFromInputFilename(k).ToString()));
+        //}
+        Con.Write(tree);
+        
     }
 
     static void PrintLogo()
     {
-        Con.Write(new FigletText(Font, "Modzy.NET").LeftAligned().Color(Color.Purple));
+        Con.Write(new FigletText(Font, "Modzy.NET").LeftAligned().Color(Color.Blue));
         Con.Write(new Text($"v{AssemblyVersion.ToString(3)}\n").LeftAligned());
     }
 

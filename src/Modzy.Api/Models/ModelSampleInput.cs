@@ -31,7 +31,7 @@
         public string Region { get; set; } = "";
 
         [JsonProperty("sources")]
-        public Dictionary<string, Dictionary<string, Dictionary<string, object>>> Sources { get; set; } = new Dictionary<string, Dictionary<string, Dictionary<string, object>>>();
+        public Dictionary<string, Dictionary<string, object>> Sources { get; set; } = new Dictionary<string, Dictionary<string, object>>();
     }
 
     public partial class ModelSampleInputName

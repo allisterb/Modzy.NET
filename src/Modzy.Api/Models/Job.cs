@@ -43,7 +43,7 @@
         public Project Project { get; set; } = new Project();
 
         [JsonProperty("jobInputs")]
-        public JobInputs JobInputs { get; set; } = new JobInputs();
+        public object JobInputs { get; set; } = new object();// Array.Empty<JobInput>();
 
         [JsonProperty("submittedAt")]
         public DateTimeOffset SubmittedAt { get; set; }
@@ -55,10 +55,10 @@
         public bool ImageClassificationModel { get; set; }
     }
 
-    public partial class JobInputs
+    public partial class JobInput
     {
         [JsonProperty("identifier")]
-        public string[] Identifier { get; set; } = Array.Empty<string>();
+        public object Identifier { get; set; } = new object();
     }
 
     public partial class JobModel

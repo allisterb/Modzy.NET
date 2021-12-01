@@ -14,11 +14,7 @@ public class ApiClient : BaseClient
     #region Implemented members
     public override async Task<string> RestHttpGetStringAsync(string query)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, BaseUrl.ToString() + query);
-        request.Headers.Add("Access-Control-Request-Method", "GET");
-        request.Headers.Add("Access-Control-Request-Headers", "Authorization");
-        request.Headers.Add("Origin", "https://localhost:7057");
-        var response = await RestClient.SendAsync(request);
+        var response = await RestClient.GetAsync(BaseUrl + query);
         Debug("HTTP GET: {0}", BaseUrl.ToString() + query);
         if (response is null)
         {
