@@ -47,7 +47,7 @@ class Program : Runtime
             SetLogger(new SerilogLogger(console: true, debug: false));
         }
         PrintLogo();
-        ParserResult<object> result = new Parser().ParseArguments<Options, ApiOptions, ModelsOptions>(args);
+        ParserResult<object> result = new Parser().ParseArguments<Options, ApiOptions, ModelsOptions, JobsOptions>(args);
         result.WithParsed<ApiOptions>(o =>
         {
             if (!string.IsNullOrEmpty(o.ApiKey))
@@ -70,16 +70,9 @@ class Program : Runtime
             }
             else if (o.Inspect)
             {
-                if (!string.IsNullOrEmpty(o.ModelId))
-                {
-                    InspectModel(o);
-                    Exit(ExitResult.SUCCESS);
-                }
-                else
-                {
-                    Error("You must specify a model ID to inspect.");
-                    Exit(ExitResult.INVALID_OPTIONS);
-                }
+                FailIfNoModelId(o);
+                InspectModel(o);
+                Exit(ExitResult.SUCCESS);
             }
             else if (o.Run)
             {
@@ -87,7 +80,97 @@ class Program : Runtime
                 RunModel(o);
                 Exit(ExitResult.SUCCESS);
             }
+            else
+            {
+                ListModels(o);
+                Exit(ExitResult.SUCCESS);
+            }
+        })
+        .WithParsed<JobsOptions>(o =>
+        {
+            if (o.List)
+            {
+                ListJobs(o);
+                Exit(ExitResult.SUCCESS);
+            }
+            else if (o.Inspect)
+            {
+                FailIfNoJobId(o);
+                InspectJob(o);
+                Exit(ExitResult.SUCCESS);
+            }
+            else
+            {
+                ListJobs(o);
+                Exit(ExitResult.SUCCESS);
+            }
+        })
+        #region Print options help
+        .WithNotParsed((IEnumerable<Error> errors) =>
+        {
+            HelpText help = GetAutoBuiltHelpText(result);
+            help.Heading = new HeadingInfo("Modzy.NET", AssemblyVersion.ToString(3));
+            help.Copyright = "";
+            if (errors.Any(e => e.Tag == ErrorType.VersionRequestedError))
+            {
+                help.Heading = new HeadingInfo("Modzy.NET", AssemblyVersion.ToString(3));
+                help.Copyright = new CopyrightInfo("Allister Beharry", new int[] { 2021 });
+                Info(help);
+                Exit(ExitResult.SUCCESS);
+            }
+            else if (errors.Any(e => e.Tag == ErrorType.HelpVerbRequestedError))
+            {
+                HelpVerbRequestedError error = (HelpVerbRequestedError)errors.First(e => e.Tag == ErrorType.HelpVerbRequestedError);
+                if (error.Type != null)
+                {
+                    help.AddVerbs(error.Type);
+                }
+                else
+                {
+                    help.AddVerbs(OptionTypes);
+                }
+                Info(help.ToString().Replace("--", ""));
+                Exit(ExitResult.SUCCESS);
+            }
+            else if (errors.Any(e => e.Tag == ErrorType.HelpRequestedError))
+            {
+                HelpRequestedError error = (HelpRequestedError)errors.First(e => e.Tag == ErrorType.HelpRequestedError);
+                help.AddVerbs(result.TypeInfo.Current);
+                help.AddOptions(result);
+                help.AddPreOptionsLine($"{result.TypeInfo.Current.Name.Replace("Options", "").ToLower()} options:");
+                Info(help);
+                Exit(ExitResult.SUCCESS);
+            }
+            else if (errors.Any(e => e.Tag == ErrorType.NoVerbSelectedError))
+            {
+                help.AddVerbs(OptionTypes);
+                Info(help);
+                Exit(ExitResult.INVALID_OPTIONS);
+            }
+            else if (errors.Any(e => e.Tag == ErrorType.MissingRequiredOptionError))
+            {
+                MissingRequiredOptionError error = (MissingRequiredOptionError)errors.First(e => e.Tag == ErrorType.MissingRequiredOptionError);
+                Error("A required option is missing: {0}.", error.NameInfo.NameText);
+                Info(help);
+                Exit(ExitResult.INVALID_OPTIONS);
+            }
+            else if (errors.Any(e => e.Tag == ErrorType.UnknownOptionError))
+            {
+                UnknownOptionError error = (UnknownOptionError)errors.First(e => e.Tag == ErrorType.UnknownOptionError);
+                help.AddVerbs(OptionTypes);
+                Error("Unknown option: {error}.", error.Token);
+                Info(help);
+                Exit(ExitResult.INVALID_OPTIONS);
+            }
+            else
+            {
+                Error("An error occurred parsing the program options: {errors}.", errors);
+                help.AddVerbs(OptionTypes);
+                Info(help);
+                Exit(ExitResult.INVALID_OPTIONS);
+            }
         });
+        #endregion;
     }
     #endregion
 
@@ -97,9 +180,9 @@ class Program : Runtime
     static ApiClient? ApiClient { get; set; }
     static Uri BaseUrl { get; } = new Uri("https://app.modzy.com/api/");
     static string ApiKey { get; set; } = "";
-    static Type[] OptionTypes = { typeof(Options), typeof(ApiOptions), typeof(ModelsOptions)};
+
+    static Type[] OptionTypes = { typeof(Options), typeof(ApiOptions), typeof(ModelsOptions), typeof(JobsOptions)};
     static Dictionary<string, Type> OptionTypesMap { get; } = new Dictionary<string, Type>();
-    static string? ModelId { get; set; }
     #endregion
 
     #region Methods
@@ -131,8 +214,7 @@ class Program : Runtime
             });
             op.Complete();
         }
-        Con.Write(table);
-        
+        Con.Write(table);    
     }
 
     static void InspectModel(ModelsOptions o)
@@ -199,7 +281,7 @@ class Program : Runtime
             sourceInputs.Add(s.Key, s.Value.Keys.ToList());
             sourceInputFiles.Add(s.Key, new Dictionary<string, string>(s.Value.Keys.Count));
         }
-        
+        Info("Model has {0} input groups with {1} total inputs.", sourceInputs.Keys.Count, sourceInputs.Values.SelectMany(x => x).Count());
         int ns = 0;
         while(ns < sourceInputTypes.Count)
         {
@@ -209,11 +291,25 @@ class Program : Runtime
             int nf = 0;
             while (nf < st.Count)
             {
-                
-                string name = AnsiConsole.Ask<string>($"Enter the [red]{st[nf].ToString()}[/] file for input " + si[nf] + ":");
+                string name = AnsiConsole.Ask<string>($"{nf + 1}. Enter the [red]{st[nf].ToString()}[/] file for input parameter [green]" + si[nf] + "[/]:");
                 if (File.Exists(name))
                 {
-                    sif.Add(si[nf], Convert.ToBase64String(File.ReadAllBytes(name)));
+                    if (st[nf] == InputType.TEXT && o.PlainText)
+                    {
+                        sif.Add(si[nf], File.ReadAllText(name));
+                    }
+                    else if (st[nf] == InputType.TEXT)
+                    {
+                        sif.Add(si[nf], "data:text/plain;charset=utf-8;base64," + Convert.ToBase64String(File.ReadAllBytes(name)));
+                    }
+                    else if (st[nf] == InputType.IMAGE && si[nf].EndsWith(".jpg"))
+                    {
+                        sif.Add(si[nf], "data:image/jpg;base64," + Convert.ToBase64String(File.ReadAllBytes(name)));
+                    }
+                    else if (st[nf] == InputType.IMAGE && si[nf].EndsWith(".png"))
+                    {
+                        sif.Add(si[nf], "data:image/png;base64," + Convert.ToBase64String(File.ReadAllBytes(name)));
+                    }
                     nf++;
                 }
                 else
@@ -238,9 +334,37 @@ class Program : Runtime
         data.Add("model", new Dictionary<string, string>() { { "identifier", model.ModelId}, { "version", version } });
         data.Add("explain", false);
         object _sources = sources.Count > 1 ? (new Dictionary<string, object>() { { "job", sources } }) : sources;
-        data.Add("input", new Dictionary<string, object>() { { "type", "text" }, { "sources", _sources }});
+        data.Add("input", new Dictionary<string, object>() { { "type", o.PlainText ? "text" : "embedded" }, { "sources", _sources }});
         var r = ApiClient!.SubmitJob(data).Result;
+        var job = Con.Status().Spinner(Spinner.Known.Dots).Start($"Running model {o.ModelId} at version {version} on input files...", ctx => ApiClient!.SubmitJob(data).Result);
+        if (job == null)
+        {
+            Error("Failed to submit job.");
+            Exit(ExitResult.ERROR_IN_RESULTS);
+        }
+        var tree = new Tree($"Job [green]{job!.JobIdentifier.ToString()}[/]");
     }
+
+    static void ListJobs(JobsOptions o)
+    {
+        JobListing[]? jobsListing = Con.Status().Spinner(Spinner.Known.Dots).Start("Fetching jobs listing...", ctx => ApiClient!.GetJobsListing().Result.ToArray());
+        Info("Got {0} jobs.", jobsListing.Length);
+        var jobs = new Job[jobsListing.Length];
+        var table = new Table();
+        table.AddColumns("[green]Id[/]", "[green]Status[/]", "[green]Model[/]", "[green]Model Version[/]");
+        foreach(var job in jobsListing)
+        {
+            table.AddRow(job.JobIdentifier.ToString(), job.Status, job.Model.Identifier, job.Model.Version);
+            table.AddEmptyRow();
+        }
+        Con.Write(table);        
+    }
+
+    static void InspectJob(JobsOptions o)
+    {
+
+    }
+
     static void PrintLogo()
     {
         Con.Write(new FigletText(Font, "Modzy.NET").LeftAligned().Color(Color.Purple));
@@ -262,7 +386,16 @@ class Program : Runtime
     {
         if (string.IsNullOrEmpty(o.ModelId))
         {
-            Error("You must specify a model ID to inspect.");
+            Error("You must specify a model ID for this operation.");
+            Exit(ExitResult.INVALID_OPTIONS);
+        }
+    }
+
+    static void FailIfNoJobId(JobsOptions o)
+    {
+        if (string.IsNullOrEmpty(o.JobId))
+        {
+            Error("You must specify a job ID for this operation.");
             Exit(ExitResult.INVALID_OPTIONS);
         }
     }

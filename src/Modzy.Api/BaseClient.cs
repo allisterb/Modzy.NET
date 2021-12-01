@@ -45,6 +45,8 @@ public abstract class BaseClient : Runtime, IApiClient
         }
         else return uri!;
     }
+
+    #region Modzy API
     public async Task<List<ModelListing>> GetModelsListing() => await RestHttpGetAsync<List<ModelListing>>("models?per-page=1000");
 
     public async Task<Model> GetModel(string modelId) => await RestHttpGetAsync<Model>($"models/{modelId}");
@@ -56,6 +58,11 @@ public abstract class BaseClient : Runtime, IApiClient
     public async Task<ModelSampleInput> GetModelSampleInput(string modelId, string version) => await RestHttpGetAsync<ModelSampleInput>($"models/{modelId}/versions/{version}/sample-input");
 
     public async Task<Job> SubmitJob(Dictionary<string, object> data) => await RestHttpPostAsync<Dictionary<string, object>, Job>("jobs", data);
+
+    public async Task<List<JobListing>> GetJobsListing() => await RestHttpGetAsync<List<JobListing>>("jobs?per-page=1000");
+
+    public async Task<Job> GetJob(string jobId) => await RestHttpGetAsync<Job>($"jobs/{jobId}");
+    #endregion
 
     public static InputType InputTypeFromInputFilename(string name)
     {

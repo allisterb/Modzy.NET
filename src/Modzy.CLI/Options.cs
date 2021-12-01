@@ -39,7 +39,7 @@ namespace Modzy.CLI
         public string? ApiKey { get; set; }
     }
 
-    [Verb("models", HelpText = "Work with models.")]
+    [Verb("models", HelpText = "Work with model operations.")]
     public class ModelsOptions : ApiOptions 
     {
         [Option('l', "list", Required = false, HelpText = "List all models.")]
@@ -57,9 +57,24 @@ namespace Modzy.CLI
         [Option("version", Required = false, HelpText = "The model version.")]
         public string? Version { get; set; }
 
+        [Option("text", Required = false, HelpText = "Indicates plain text input should be sent to model.")]
+        public bool PlainText { get; set; }
+
         [Value(0, Required = false)]
         public string? ModelId { get; set; }
 
+    }
 
+    [Verb("jobs", HelpText = "Work with job operations.")]
+    public class JobsOptions : ApiOptions
+    {
+        [Option('l', "list", Required = false, HelpText = "List all jobs.")]
+        public bool List { get; set; }
+
+        [Option("inspect", Required = false, HelpText = "Inspect a job with the specified job ID.")]
+        public bool Inspect { get; set; }
+
+        [Value(0, Required = false)]
+        public string? JobId { get; set; }
     }
 }
