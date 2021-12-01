@@ -42,7 +42,8 @@ public class ApiClient : BaseClient
     {
         var c = JsonConvert.SerializeObject(data);
         var content = new StringContent(c, Encoding.UTF8, "application/json");
-        var response = await DefaultHttpClient.PostAsync(BaseUrl + query, content);
+
+        var response = await RestClient.PostAsync(BaseUrl.ToString() + query, content);
         if (response is null)
         {
             throw new Exception("The response for the HTTP POST request is null.");

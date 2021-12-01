@@ -55,6 +55,8 @@ public abstract class BaseClient : Runtime, IApiClient
 
     public async Task<ModelSampleInput> GetModelSampleInput(string modelId, string version) => await RestHttpGetAsync<ModelSampleInput>($"models/{modelId}/versions/{version}/sample-input");
 
+    public async Task<Job> SubmitJob(Dictionary<string, object> data) => await RestHttpPostAsync<Dictionary<string, object>, Job>("jobs", data);
+
     public static InputType InputTypeFromInputFilename(string name)
     {
         name = name.ToLower();

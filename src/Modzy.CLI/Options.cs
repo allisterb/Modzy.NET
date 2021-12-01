@@ -54,6 +54,9 @@ namespace Modzy.CLI
         [Option('i', "input", Required = false, HelpText = "Comma-delimited list of input files for a run operation.")]
         public string? Input { get; set; }
 
+        [Option("version", Required = false, HelpText = "The model version.")]
+        public string? Version { get; set; }
+
         [Value(0, Required = false)]
         public string? ModelId { get; set; }
 
