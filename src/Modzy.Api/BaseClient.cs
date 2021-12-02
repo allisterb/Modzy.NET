@@ -62,6 +62,8 @@ public abstract class BaseClient : Runtime, IApiClient
     public async Task<List<JobListing>> GetJobsListing() => await RestHttpGetAsync<List<JobListing>>("jobs?per-page=1000");
 
     public async Task<Job> GetJob(string jobId) => await RestHttpGetAsync<Job>($"jobs/{jobId}");
+
+    public async Task<Results> GetResults(string jobId) => await RestHttpGetAsync<Results>($"results/{jobId}");
     #endregion
 
     public static InputType InputTypeFromInputFilename(string name)
@@ -89,7 +91,8 @@ public abstract class BaseClient : Runtime, IApiClient
         }
         else
         {
-            throw new Exception($"Could not determine input type from input file name {name}.");
+            return InputType.AUDIO;
+            //throw new Exception($"Could not determine input type from input file name {name}.");
         }
     }
     #endregion

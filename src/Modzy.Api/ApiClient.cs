@@ -36,7 +36,7 @@ public class ApiClient : BaseClient
 
     public override async Task<string> RestHttpPostStringAsync<T1>(string query, T1 data)
     {
-        var c = JsonConvert.SerializeObject(data);
+        var c = JsonConvert.SerializeObject(data, ModelSampleInputSourceConverter.Singleton);
         var content = new StringContent(c, Encoding.UTF8, "application/json");
 
         var response = await RestClient.PostAsync(BaseUrl.ToString() + query, content);
@@ -59,9 +59,9 @@ public class ApiClient : BaseClient
         }
     }
 
-    public override async Task<T> RestHttpGetAsync<T>(string query) => JsonConvert.DeserializeObject<T>(await RestHttpGetStringAsync(query)) ?? throw new Exception($"Did not successfully read JSON response.");
+    public override async Task<T> RestHttpGetAsync<T>(string query) => JsonConvert.DeserializeObject<T>(await RestHttpGetStringAsync(query), ModelSampleInputSourceConverter.Singleton) ?? throw new Exception($"Did not successfully read JSON response.");
 
-    public override async Task<T2> RestHttpPostAsync<T1, T2>(string query, T1 data)=> JsonConvert.DeserializeObject<T2>(await RestHttpPostStringAsync(query, data)) ?? throw new Exception($"Did not successfully read JSON response.");
+    public override async Task<T2> RestHttpPostAsync<T1, T2>(string query, T1 data)=> JsonConvert.DeserializeObject<T2>(await RestHttpPostStringAsync(query, data), ModelSampleInputSourceConverter.Singleton) ?? throw new Exception($"Did not successfully read JSON response.");
     
     #endregion
 

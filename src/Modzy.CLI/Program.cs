@@ -99,6 +99,12 @@ class Program : Runtime
                 InspectJob(o);
                 Exit(ExitResult.SUCCESS);
             }
+            else if (o.Results)
+            {
+                FailIfNoJobId(o);
+                JobResults(o);
+                Exit(ExitResult.SUCCESS);
+            }
             else
             {
                 ListJobs(o);
@@ -240,16 +246,13 @@ class Program : Runtime
         metadata.AddNode($"[green]Author:[/] {model.Author}");
         var tags = model.Tags.Any() ? model.Tags.Select(k => k.Name).Aggregate((p, s) => p + ", " + s) : "";
         metadata.AddNode($"[green]Tags:[/] {tags}");
-        var versions = metadata.AddNode("Versions");
-        foreach(var v in model.Versions)
-        {
-            versions.AddNode(v);
-        }
+        var versions = model.Versions.Any() ? model.Versions.Aggregate((p, s) => p + ", " + s) : "";
+        metadata.AddNode($"[green]Versions:[/] {versions}");
         var inputs = tree.AddNode("[yellow]Inputs[/]");
         foreach(var s in sample!.Input.Sources )
         {
-            var sn = inputs.AddNode($"[red]{s.Key}[/]");
-            sn.AddNodes(s.Value.Keys.Select(k => ApiClient.InputTypeFromInputFilename(k).ToString()));
+            var sn = inputs.AddNode($"[green]{s.Key}[/]");
+            sn.AddNodes(s.Value.Keys.Select(k => "[red]" + ApiClient.InputTypeFromInputFilename(k).ToString() + "[/]" + ": " + k));
         }
         Con.Write(tree);
     }
@@ -405,6 +408,60 @@ class Program : Runtime
         
     }
 
+    static void JobResults(JobsOptions o)
+    {
+        var job = Con.Status().Spinner(Spinner.Known.Dots).Start($"Fetching job details for job {o.JobId!}...", ctx => ApiClient!.GetJob(o.JobId!).Result);
+        if (job == null)
+        {
+            Error("Could not find job with ID {0}.", o.JobId!);
+            Exit(ExitResult.ERROR_IN_RESULTS);
+        }
+        Info("Job {0} was submitted at {1}.", job!.JobIdentifier, job!.SubmittedAt);
+        if (job.Status == "CANCELED")
+        {
+            Error("Job {0} was cancelled.", job.JobIdentifier);
+            Exit(ExitResult.ERROR_IN_RESULTS);
+        }
+        else if (job.Status != "COMPLETED")
+        {
+            Info("Job {0} status is currently {1}.", job.JobIdentifier, job.Status);
+            Exit(ExitResult.SUCCESS);
+        }
+        var model = Con.Status().Spinner(Spinner.Known.Dots).Start($"Fetching model details for model {job!.Model.Identifier}...", ctx => ApiClient!.GetModel(job!.Model.Identifier).Result);
+        if (model == null)
+        {
+            Error("Could not find model with ID {0}.", job!.Model.Identifier);
+            Exit(ExitResult.ERROR_IN_RESULTS);
+        }
+        var results = Con.Status().Spinner(Spinner.Known.Dots).Start($"Fetching results for job {o.JobId!}...", ctx => ApiClient!.GetResults(o.JobId!).Result);
+        if (results == null)
+        {
+            Error("Could not get results for job with ID {0}.", o.JobId!);
+            Exit(ExitResult.ERROR_IN_RESULTS);
+        }
+        var tree = new Tree($"Results for Job {job.JobIdentifier}");
+        TreeNode timings = tree.AddNode("Timings");
+        timings.AddNode($"Job Submitted: {results!.SubmittedAt}");
+        timings.AddNode($"Total Elapsed Time: {results!.ElapsedTime}s");
+        timings.AddNode($"Total Model Latency: {results!.TotalModelLatency}s");
+        timings.AddNode($"Total Queue Time: {results!.TotalQueueTime}s");
+
+        TreeNode predictions = tree.AddNode("Predictions");
+        foreach (var i in results.ResultsResults)
+        {
+            var inp = predictions.AddNode($"[red]{i.Key}[/]");
+            foreach(var p in i.Value.ResultsJson.Data.Result.ClassPredictions)
+            {
+                inp.AddNode($"Class: {p.Class}");
+                inp.AddNode($"Score: {p.Score}");
+
+            }
+        }
+      
+
+
+        Con.Write(tree);
+    }
     static void PrintLogo()
     {
         Con.Write(new FigletText(Font, "Modzy.NET").LeftAligned().Color(Color.Blue));
@@ -456,7 +513,8 @@ class Program : Runtime
     #region Event Handlers
     private static void Program_UnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
-        Error((Exception)e.ExceptionObject, "Unhandled runtime error occurred. Modzy.NET CLI will now shutdown.");
+        Error("Unhandled runtime error occurred. Modzy.NET CLI will now shutdown.");
+        Con.WriteException((Exception) e.ExceptionObject);
         Exit(ExitResult.UNHANDLED_EXCEPTION);
     }
 

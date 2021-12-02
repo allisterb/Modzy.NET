@@ -74,6 +74,9 @@ namespace Modzy.CLI
         [Option('i', "inspect", Required = false, HelpText = "Inspect a job with the specified job ID.")]
         public bool Inspect { get; set; }
 
+        [Option('r', "results", Required = false, HelpText = "Inspect a job with the specified job ID.")]
+        public bool Results { get; set; }
+
         [Value(0, Required = false)]
         public string? JobId { get; set; }
     }
