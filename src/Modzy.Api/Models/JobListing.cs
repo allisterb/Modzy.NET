@@ -17,5 +17,9 @@
 
         [JsonProperty("model")]
         public JobModel Model { get; set; } = new JobModel();
+
+        [JsonProperty("submittedAt")]
+        public DateTimeOffset? SubmittedAt { get; set; }
+
     }
 }

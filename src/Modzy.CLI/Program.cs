@@ -282,6 +282,11 @@ class Program : Runtime
                 Exit(ExitResult.ERROR_IN_RESULTS);
             }
         }
+        if (o.PlainText && sample!.Input.Type == "aws-s3" )
+        {
+            Error("The model {0} requires file inputs. Using plain text input will cause the submitted job to stall.", model.Name);
+            Exit(ExitResult.INVALID_OPTIONS);
+        }
         var sourceInputTypes = new Dictionary<string, List<InputType>>();
         var sourceInputs = new Dictionary<string, List<string>>();
         var sourceInputFiles = new Dictionary<string, Dictionary<string, string>>();
@@ -390,7 +395,7 @@ class Program : Runtime
         
         var jobs = new Job[jobsListing.Length];
         var table = new Table();
-        table.AddColumns("[green]Id[/]", "[green]Status[/]", "[green]Model[/]", "[green]Model Version[/]");
+        table.AddColumns("[green]Id[/]", "[green]Status[/]", "[green]Model Id[/]", "[green]Model Name[/]", "[green]Model Version[/]", "[green]Submitted[/]");
         var getStatusText = (string s) =>
         {
             switch (s)
@@ -405,7 +410,7 @@ class Program : Runtime
         {
             if (!(o.Cancelled || o.Completed) || (o.Cancelled && job.Status == "CANCELED") || (o.Completed && job.Status == "COMPLETED"))
             {
-                table.AddRow(job.JobIdentifier.ToString(), getStatusText(job.Status), job.Model.Identifier, job.Model.Version);
+                table.AddRow(job.JobIdentifier.ToString(), getStatusText(job.Status), job.Model.Identifier, job.Model.Name, job.Model.Version, job.SubmittedAt.ToString() ?? "");
                 table.AddEmptyRow();
             }
         }

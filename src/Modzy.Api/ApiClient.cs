@@ -38,7 +38,7 @@ public class ApiClient : BaseClient
     {
         var c = JsonConvert.SerializeObject(data, ModelSampleInputSourceConverter.Singleton);
         var content = new StringContent(c, Encoding.UTF8, "application/json");
-
+        Debug("JSON request: {0}", c);
         var response = await RestClient.PostAsync(BaseUrl.ToString() + query, content);
         if (response is null)
         {

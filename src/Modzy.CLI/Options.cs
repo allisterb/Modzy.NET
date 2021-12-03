@@ -60,7 +60,7 @@ namespace Modzy.CLI
         [Option('s', "search", Required = false, HelpText = "Search for a model that contains the specified text in the title or description.")]
         public string? Search { get; set; }
 
-        [Option("text", Required = false, HelpText = "Indicates plain text input should be sent to model.")]
+        [Option('t', "text", Required = false, HelpText = "Indicates plain text input should be sent to model.")]
         public bool PlainText { get; set; }
 
         [Value(0, Required = false)]
