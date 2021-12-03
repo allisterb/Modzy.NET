@@ -195,7 +195,7 @@ class Program : Runtime
     static void ListModels(ModelsOptions o)
     {
         ModelListing[]? modelsListing = Con.Status().Spinner(Spinner.Known.Dots).Start("Fetching models listing...", ctx => ApiClient!.GetModelsListing().Result.ToArray());
-        Info("Got {0} models.", modelsListing.Length);
+        Info("Got {0} models in total.", modelsListing.Length);
         var models = new Model[modelsListing.Length];
         var table = new Table();
         table.AddColumns("[green]Id[/]", "[green]Name[/]", "[green]Description[/]", "[green]Author[/]", "[green]Versions[/]", "[green]Latest Version[/]");
@@ -221,6 +221,10 @@ class Program : Runtime
                 });
             });
             op.Complete();
+        }
+        if (o.Search is not null && table.Rows.Count > 0)
+        {
+            Info("Got {0} models that meet search criteria.", table.Rows.Count / 2);
         }
         Con.Write(table);    
     }
@@ -282,11 +286,6 @@ class Program : Runtime
                 Exit(ExitResult.ERROR_IN_RESULTS);
             }
         }
-        if (o.PlainText && sample!.Input.Type == "aws-s3" )
-        {
-            Error("The model {0} requires file inputs. Using plain text input will cause the submitted job to stall.", model.Name);
-            Exit(ExitResult.INVALID_OPTIONS);
-        }
         var sourceInputTypes = new Dictionary<string, List<InputType>>();
         var sourceInputs = new Dictionary<string, List<string>>();
         var sourceInputFiles = new Dictionary<string, Dictionary<string, string>>();
@@ -311,10 +310,9 @@ class Program : Runtime
                         : AnsiConsole.Ask<string>($"{nf + 1}. Enter the [red]{st[nf].ToString()}[/] for input parameter [green]" + si[nf] + "[/]:");
                 if (o.PlainText)
                 {
-                    sif.Add(si[nf], name);
+                    sif.Add(si[nf], "data:text/plain;charset=utf-8;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(name)));
                     nf++;
                 }
-
                 else if (File.Exists(name))
                 {
                     if (name.EndsWith(".txt"))
@@ -329,9 +327,13 @@ class Program : Runtime
                     {
                         sif.Add(si[nf], "data:image/png;base64," + Convert.ToBase64String(File.ReadAllBytes(name)));
                     }
-                    else if (name.EndsWith(".mp3"))
+                    else if (name.EndsWith(".wav"))
                     {
-                        sif.Add(si[nf], "data:audio/mp3;base64," + Convert.ToBase64String(File.ReadAllBytes(name)));
+                        sif.Add(si[nf], "data:audio/wav;base64," + Convert.ToBase64String(File.ReadAllBytes(name)));
+                    }
+                    else if (name.EndsWith(".mp4"))
+                    {
+                        sif.Add(si[nf], "data:video/mp4;base64," + Convert.ToBase64String(File.ReadAllBytes(name)));
                     }
                     nf++;
                 }
@@ -357,7 +359,7 @@ class Program : Runtime
         data.Add("model", new Dictionary<string, string>() { { "identifier", model.ModelId}, { "version", version } });
         data.Add("explain", false);
         object _sources = sources.Count > 1 ? (new Dictionary<string, object>() { { "job", sources } }) : sources;
-        data.Add("input", new Dictionary<string, object>() { { "type", o.PlainText ? "text" : "embedded" }, { "sources", _sources }});
+        data.Add("input", new Dictionary<string, object>() { { "type", "embedded" }, { "sources", _sources }});
         var job = Con.Status().Spinner(Spinner.Known.Dots).Start($"Running model {o.ModelId} at version {version} on input files...", ctx => ApiClient!.SubmitJob(data).Result);
         if (job == null)
         {
@@ -367,6 +369,7 @@ class Program : Runtime
         else
         {
             Info("Successfully submitted job with ID {0}.", job.JobIdentifier);
+            Info("Use `modzy jobs -i {0}` to check the status of this job.", job.JobIdentifier);
         }
         var tree = new Tree($"Job [green]{job!.JobIdentifier.ToString()}[/]");
     }

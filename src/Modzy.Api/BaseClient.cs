@@ -89,7 +89,7 @@ public abstract class BaseClient : Runtime, IApiClient
         {
             return InputType.JSON;
         }
-        else if (name.EndsWith(".mp3"))
+        else if (name.EndsWith(".wav"))
         {
             return InputType.AUDIO;
         }
