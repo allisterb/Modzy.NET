@@ -54,8 +54,11 @@ namespace Modzy.CLI
         [Option('f', "input-files", Required = false, HelpText = "Comma-delimited list of input files for a run operation.")]
         public string? Input { get; set; }
 
-        [Option("version", Required = false, HelpText = "The model version.")]
+        [Option('v', "version", Required = false, HelpText = "The model version.")]
         public string? Version { get; set; }
+
+        [Option('s', "search", Required = false, HelpText = "Search for a model that contains the specified text in the title or description.")]
+        public string? Search { get; set; }
 
         [Option("text", Required = false, HelpText = "Indicates plain text input should be sent to model.")]
         public bool PlainText { get; set; }

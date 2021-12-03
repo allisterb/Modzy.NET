@@ -209,13 +209,15 @@ class Program : Runtime
                     models[i] = ApiClient!.GetModel(modelsListing[i].ModelId).Result;
                     lock (_uilock)
                     {
-                        var model = models[i];
-                        table.AddRow(model.ModelId, model.Name, model.Description, model.Author,
-                            model.Versions.Any() ? model.Versions.Aggregate((p, s) => p + "," + s) : "", model.LatestVersion);
-                        table.AddEmptyRow();
+                        if (o.Search is null || (o.Search is not null && (models[i].Name.ToLower().Contains(o.Search.ToLower()))))
+                        {
+                            var model = models[i];
+                            table.AddRow(model.ModelId, model.Name, model.Description, model.Author,
+                                model.Versions.Any() ? model.Versions.Aggregate((p, s) => p + "," + s) : "", model.LatestVersion);
+                            table.AddEmptyRow();
+                        }
                         task1.Increment(100.0 / modelsListing.Length);
                     }
-        
                 });
             });
             op.Complete();
@@ -343,12 +345,15 @@ class Program : Runtime
         data.Add("explain", false);
         object _sources = sources.Count > 1 ? (new Dictionary<string, object>() { { "job", sources } }) : sources;
         data.Add("input", new Dictionary<string, object>() { { "type", o.PlainText ? "text" : "embedded" }, { "sources", _sources }});
-        var r = ApiClient!.SubmitJob(data).Result;
         var job = Con.Status().Spinner(Spinner.Known.Dots).Start($"Running model {o.ModelId} at version {version} on input files...", ctx => ApiClient!.SubmitJob(data).Result);
         if (job == null)
         {
             Error("Failed to submit job.");
             Exit(ExitResult.ERROR_IN_RESULTS);
+        }
+        else
+        {
+            Info("Successfully submitted job with ID {0}.", job.JobIdentifier);
         }
         var tree = new Tree($"Job [green]{job!.JobIdentifier.ToString()}[/]");
     }
@@ -457,9 +462,6 @@ class Program : Runtime
 
             }
         }
-      
-
-
         Con.Write(tree);
     }
     static void PrintLogo()
@@ -470,12 +472,12 @@ class Program : Runtime
 
     public static void Exit(ExitResult result)
     {
-
         if (Cts != null && !Cts.Token.CanBeCanceled)
         {
             Cts.Cancel();
             Cts.Dispose();
         }
+        Serilog.Log.CloseAndFlush();
         Environment.Exit((int)result);
     }
 
@@ -513,6 +515,7 @@ class Program : Runtime
     #region Event Handlers
     private static void Program_UnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
+        Serilog.Log.CloseAndFlush();
         Error("Unhandled runtime error occurred. Modzy.NET CLI will now shutdown.");
         Con.WriteException((Exception) e.ExceptionObject);
         Exit(ExitResult.UNHANDLED_EXCEPTION);

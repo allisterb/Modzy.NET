@@ -97,7 +97,10 @@
         public string EndTime { get; set; } =  string.Empty;
 
         [JsonProperty("results.json")]
-        public ResultsJson ResultsJson { get; set; } = new ResultsJson();
+        public ResultsJson? ResultsJson;
+
+        [JsonProperty("results.wav")]
+        public Uri? ResultsWav { get; set; }
 
         [JsonProperty("voting")]
         public Voting Voting { get; set; } = new Voting();

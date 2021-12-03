@@ -19,7 +19,7 @@
         public long TotalInputs { get; set; }
 
         [JsonProperty("jobIdentifier")]
-        public Guid JobIdentifier { get; set; }
+        public string JobIdentifier { get; set; } = "";
 
         [JsonProperty("accessKey")]
         public string AccessKey { get; set; } = "";
@@ -43,7 +43,7 @@
         public Project Project { get; set; } = new Project();
 
         [JsonProperty("jobInputs")]
-        public object JobInputs { get; set; } = new object();// Array.Empty<JobInput>();
+        public object JobInputs { get; set; } = new object();
 
         [JsonProperty("submittedAt")]
         public DateTimeOffset SubmittedAt { get; set; }
@@ -55,10 +55,10 @@
         public bool ImageClassificationModel { get; set; }
     }
 
-    public partial class JobInput
+    public partial class JobInput 
     {
-        [JsonProperty("identifier")]
-        public object Identifier { get; set; } = new object();
+        
+        public JobInputIdentifier[] Identifier { get; set; } = Array.Empty<JobInputIdentifier>();
     }
 
     public partial class JobModel
@@ -76,7 +76,7 @@
     public partial class Project
     {
         [JsonProperty("identifier")]
-        public Guid Identifier { get; set; }
+        public string Identifier { get; set; } = "";
 
         [JsonProperty("name")]
         public string Name { get; set; } = "";
@@ -85,13 +85,13 @@
     public partial class Team
     {
         [JsonProperty("identifier")]
-        public Guid Identifier { get; set; }
+        public string Identifier { get; set; } = "";
     }
 
     public partial class User
     {
         [JsonProperty("identifier")]
-        public Guid Identifier { get; set; }
+        public string Identifier { get; set; } = "";
 
         [JsonProperty("externalIdentifier")]
         public string ExternalIdentifier { get; set; } = "";
@@ -108,4 +108,61 @@
         [JsonProperty("status")]
         public string Status { get; set; } = "";
     }
+
+    public class JobInputIdentifier
+    {
+        [JsonProperty("identifier")]
+        public string Identifier { get; set; } = "";
+
+    }
+
+    internal class JobInputConverter : JsonConverter
+    {
+        public override bool CanConvert(Type t) => t == typeof(JobInput);
+
+        public override object? ReadJson(JsonReader reader, Type t, object? existingValue, JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.Null)
+            {
+                return null;
+            }
+            else if (reader.TokenType == JsonToken.StartObject)
+            {
+                var value = serializer.Deserialize<JobInputIdentifier>(reader);
+                return new JobInput() { Identifier = new JobInputIdentifier[] { value! } } ;
+            }
+            else if (reader.TokenType == JsonToken.StartArray)
+            {
+                var value = serializer.Deserialize<JobInputIdentifier[]>(reader);
+                var o = new JobInput() { Identifier = value!};
+                return o;
+            }
+            throw new Exception("Cannot unmarshal type JobInput");
+        }
+
+
+        public override void WriteJson(JsonWriter writer, object? untypedValue, JsonSerializer serializer)
+        {
+            if (untypedValue == null)
+            {
+                serializer.Serialize(writer, null);
+                return;
+            }
+            JobInput value = (JobInput) untypedValue;
+            if (value.Identifier.Length == 1)
+            {
+                serializer.Serialize(writer, value.Identifier[0]);
+                return;
+            }
+            else
+            {
+                serializer.Serialize(writer, value);
+                return;
+            }
+            throw new Exception("Cannot marshal type JobInput");
+        }
+
+        public static readonly JobInputConverter Singleton = new JobInputConverter();
+    }
+
 }

@@ -46,7 +46,7 @@ public class ApiClient : BaseClient
         }
         else
         {
-            if (!response.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.Accepted)
             {
                 throw new Exception($"HTTP POST request returned code {response.StatusCode}.");
             }
@@ -59,9 +59,9 @@ public class ApiClient : BaseClient
         }
     }
 
-    public override async Task<T> RestHttpGetAsync<T>(string query) => JsonConvert.DeserializeObject<T>(await RestHttpGetStringAsync(query), ModelSampleInputSourceConverter.Singleton) ?? throw new Exception($"Did not successfully read JSON response.");
+    public override async Task<T> RestHttpGetAsync<T>(string query) => JsonConvert.DeserializeObject<T>(await RestHttpGetStringAsync(query), ModelSampleInputSourceConverter.Singleton, JobInputConverter.Singleton) ?? throw new Exception($"Did not successfully read JSON response.");
 
-    public override async Task<T2> RestHttpPostAsync<T1, T2>(string query, T1 data)=> JsonConvert.DeserializeObject<T2>(await RestHttpPostStringAsync(query, data), ModelSampleInputSourceConverter.Singleton) ?? throw new Exception($"Did not successfully read JSON response.");
+    public override async Task<T2> RestHttpPostAsync<T1, T2>(string query, T1 data)=> JsonConvert.DeserializeObject<T2>(await RestHttpPostStringAsync(query, data), ModelSampleInputSourceConverter.Singleton, JobInputConverter.Singleton) ?? throw new Exception($"Did not successfully read JSON response.");
     
     #endregion
 

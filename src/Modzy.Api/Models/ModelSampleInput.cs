@@ -111,6 +111,7 @@
             Converters =
             {
                 ModelSampleInputSourceConverter.Singleton,
+                JobInputConverter.Singleton,
                 new IsoDateTimeConverter { DateTimeStyles = DateTimeStyles.AssumeUniversal }
             },
         };

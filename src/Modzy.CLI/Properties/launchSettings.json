@@ -2,7 +2,7 @@
   "profiles": {
     "Modzy.CLI": {
       "commandName": "Project",
-      "commandLineArgs": "models --inspect ed542963de",
+      "commandLineArgs": "models -r  ed542963de -v 1.0.1 --debug",
       "environmentVariables": {
         "MODZY_APIKEY": "qBL0HO1JmSXy43E3Hso6.GoXIos62w9ld2Ir8YMrn"
       }
