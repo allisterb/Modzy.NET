@@ -64,7 +64,10 @@
         public long InputSize { get; set; }
 
         [JsonProperty("results")]
-        public Dictionary<string, ResultsClass> ResultsResults { get; set; } = new Dictionary<string, ResultsClass>();
+        public Dictionary<string, ResultsClass>? ResultsResults { get; set; }
+
+        [JsonProperty("failures")]
+        public Dictionary<string, Failure>? Failures { get; set; }
     }
 
     public partial class ResultsClass
@@ -136,7 +139,7 @@
         public string Class { get; set; } = string.Empty;
 
         [JsonProperty("score")]
-        public long Score { get; set; }
+        public double Score { get; set; }
     }
 
     public partial class Voting
@@ -148,5 +151,36 @@
         public long Down { get; set; }
     }
 
+    public partial class Failure
+    {
+        [JsonProperty("status")]
+        public string Status { get; set; } = "";
 
+        [JsonProperty("engine")]
+        public string Engine { get; set; } = "";
+
+        [JsonProperty("error")]
+        public string Error { get; set; } = "";
+
+        [JsonProperty("inputFetching")]
+        public long InputFetching { get; set; }
+
+        [JsonProperty("outputUploading")]
+        public object? OutputUploading { get; set; }
+
+        [JsonProperty("modelLatency")]
+        public long ModelLatency { get; set; }
+
+        [JsonProperty("queueTime")]
+        public long QueueTime { get; set; }
+
+        [JsonProperty("startTime")]
+        public string StartTime { get; set; } = "";
+
+        [JsonProperty("updateTime")]
+        public string UpdateTime { get; set; } = "";
+
+        [JsonProperty("endTime")]
+        public string EndTime { get; set; } = "";
+    }
 }

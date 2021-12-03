@@ -61,6 +61,10 @@ public abstract class BaseClient : Runtime, IApiClient
 
     public async Task<List<JobListing>> GetJobsListing() => await RestHttpGetAsync<List<JobListing>>("jobs?per-page=1000");
 
+    public async Task<List<JobListing>> GetPendingJobsListing() => await RestHttpGetAsync<List<JobListing>>("jobs/history?status=pending&per-page=1000");
+
+    public async Task<List<JobListing>> GetTerminatedJobsListing() => await RestHttpGetAsync<List<JobListing>>("jobs/history?status=terminated&per-page=1000");
+
     public async Task<Job> GetJob(string jobId) => await RestHttpGetAsync<Job>($"jobs/{jobId}");
 
     public async Task<Results> GetResults(string jobId) => await RestHttpGetAsync<Results>($"results/{jobId}");
@@ -89,10 +93,13 @@ public abstract class BaseClient : Runtime, IApiClient
         {
             return InputType.AUDIO;
         }
-        else
+        else if (name == "input")
         {
-            return InputType.AUDIO;
-            //throw new Exception($"Could not determine input type from input file name {name}.");
+            return InputType.FILE;
+        }
+        else 
+        {
+            throw new Exception($"Could not determine input type from input file name {name}.");
         }
     }
     #endregion

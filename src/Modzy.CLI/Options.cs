@@ -71,7 +71,7 @@ namespace Modzy.CLI
     [Verb("jobs", HelpText = "Work with job operations.")]
     public class JobsOptions : ApiOptions
     {
-        [Option('l', "list", Required = false, HelpText = "List all jobs.")]
+        [Option('l', "list", Required = false, HelpText = "List all pending jobs.")]
         public bool List { get; set; }
 
         [Option('i', "inspect", Required = false, HelpText = "Inspect a job with the specified job ID.")]
@@ -79,6 +79,12 @@ namespace Modzy.CLI
 
         [Option('r', "results", Required = false, HelpText = "Inspect a job with the specified job ID.")]
         public bool Results { get; set; }
+
+        [Option("cancelled", Required = false, HelpText = "List only cancelled jobs.")]
+        public bool Cancelled { get; set; }
+
+        [Option("completed", Required = false, HelpText = "List only completed jobs.")]
+        public bool Completed { get; set; }
 
         [Value(0, Required = false)]
         public string? JobId { get; set; }

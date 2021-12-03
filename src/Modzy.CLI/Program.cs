@@ -88,7 +88,7 @@ class Program : Runtime
         })
         .WithParsed<JobsOptions>(o =>
         {
-            if (o.List)
+            if (o.List || o.Completed || o.Cancelled)
             {
                 ListJobs(o);
                 Exit(ExitResult.SUCCESS);
@@ -301,24 +301,32 @@ class Program : Runtime
             int nf = 0;
             while (nf < st.Count)
             {
-                string name = AnsiConsole.Ask<string>($"{nf + 1}. Enter the [red]{st[nf].ToString()}[/] file for input parameter [green]" + si[nf] + "[/]:");
-                if (File.Exists(name))
+                string name = !o.PlainText ? 
+                        AnsiConsole.Ask<string>($"{nf + 1}. Enter the [red]{st[nf].ToString()}[/] file for input parameter [green]" + si[nf] + "[/]:")
+                        : AnsiConsole.Ask<string>($"{nf + 1}. Enter the [red]{st[nf].ToString()}[/] for input parameter [green]" + si[nf] + "[/]:");
+                if (o.PlainText)
                 {
-                    if (st[nf] == InputType.TEXT && o.PlainText)
-                    {
-                        sif.Add(si[nf], File.ReadAllText(name));
-                    }
-                    else if (st[nf] == InputType.TEXT)
+                    sif.Add(si[nf], name);
+                    nf++;
+                }
+
+                else if (File.Exists(name))
+                {
+                    if (name.EndsWith(".txt"))
                     {
                         sif.Add(si[nf], "data:text/plain;charset=utf-8;base64," + Convert.ToBase64String(File.ReadAllBytes(name)));
                     }
-                    else if (st[nf] == InputType.IMAGE && si[nf].EndsWith(".jpg"))
+                    else if (name.EndsWith(".jpg"))
                     {
                         sif.Add(si[nf], "data:image/jpg;base64," + Convert.ToBase64String(File.ReadAllBytes(name)));
                     }
-                    else if (st[nf] == InputType.IMAGE && si[nf].EndsWith(".png"))
+                    else if (name.EndsWith(".png"))
                     {
                         sif.Add(si[nf], "data:image/png;base64," + Convert.ToBase64String(File.ReadAllBytes(name)));
+                    }
+                    else if (name.EndsWith(".mp3"))
+                    {
+                        sif.Add(si[nf], "data:audio/mp3;base64," + Convert.ToBase64String(File.ReadAllBytes(name)));
                     }
                     nf++;
                 }
@@ -360,8 +368,26 @@ class Program : Runtime
 
     static void ListJobs(JobsOptions o)
     {
-        JobListing[]? jobsListing = Con.Status().Spinner(Spinner.Known.Dots).Start("Fetching jobs listing...", ctx => ApiClient!.GetJobsListing().Result.ToArray());
-        Info("Got {0} jobs.", jobsListing.Length);
+        JobListing[]? jobsListing;
+        string js = "pending";
+        if (o.Completed)
+        {
+            js = "completed";
+            jobsListing = Con.Status().Spinner(Spinner.Known.Dots).Start("Fetching completed jobs listing...", ctx => ApiClient!.GetTerminatedJobsListing().Result.ToArray());
+            Info("Got {0} {1} job(s).", jobsListing.Where(j => j.Status == "COMPLETED").Count(), js);
+        }
+        else if (o.Cancelled)
+        {
+            js = "cancelled";
+            jobsListing = Con.Status().Spinner(Spinner.Known.Dots).Start("Fetching cancelled jobs listing...", ctx => ApiClient!.GetTerminatedJobsListing().Result.ToArray());
+            Info("Got {0} {1} job(s).", jobsListing.Where(j => j.Status == "CANCELED").Count(), js);
+        }
+        else
+        {
+            jobsListing = Con.Status().Spinner(Spinner.Known.Dots).Start("Fetching pending jobs listing...", ctx => ApiClient!.GetPendingJobsListing().Result.ToArray());
+            Info("Got {0} {1} job(s).", jobsListing.Count(), js);
+        }
+        
         var jobs = new Job[jobsListing.Length];
         var table = new Table();
         table.AddColumns("[green]Id[/]", "[green]Status[/]", "[green]Model[/]", "[green]Model Version[/]");
@@ -371,13 +397,17 @@ class Program : Runtime
             {
                 case "SUBMITTED": return "[purple]SUBMITTED[/]";
                 case "CANCELED": return "[yellow]CANCELLED[/]";
+                case "COMPLETED": return "[green]COMPLETED[/]";
                 default: return s;
             }
         };
         foreach(var job in jobsListing)
         {
-            table.AddRow(job.JobIdentifier.ToString(), getStatusText(job.Status), job.Model.Identifier, job.Model.Version);
-            table.AddEmptyRow();
+            if (!(o.Cancelled || o.Completed) || (o.Cancelled && job.Status == "CANCELED") || (o.Completed && job.Status == "COMPLETED"))
+            {
+                table.AddRow(job.JobIdentifier.ToString(), getStatusText(job.Status), job.Model.Identifier, job.Model.Version);
+                table.AddEmptyRow();
+            }
         }
         Con.Write(table);        
     }
@@ -445,21 +475,25 @@ class Program : Runtime
             Exit(ExitResult.ERROR_IN_RESULTS);
         }
         var tree = new Tree($"Results for Job {job.JobIdentifier}");
-        TreeNode timings = tree.AddNode("Timings");
-        timings.AddNode($"Job Submitted: {results!.SubmittedAt}");
-        timings.AddNode($"Total Elapsed Time: {results!.ElapsedTime}s");
-        timings.AddNode($"Total Model Latency: {results!.TotalModelLatency}s");
-        timings.AddNode($"Total Queue Time: {results!.TotalQueueTime}s");
-
-        TreeNode predictions = tree.AddNode("Predictions");
-        foreach (var i in results.ResultsResults)
+        
+        TreeNode timings = tree.AddNode("[yellow]Timings[/]");
+        timings.AddNode($"[green]Job Submitted:[/] {results!.SubmittedAt}");
+        timings.AddNode($"[green]Total Elapsed Time:[/] {results!.ElapsedTime}[red]s[/]");
+        timings.AddNode($"[green]Total Model Latency:[/] {results!.TotalModelLatency}[red]s[/]");
+        timings.AddNode($"[green]Total Queue Time:[/] {results!.TotalQueueTime}[red]s[/]");
+        
+        TreeNode predictions = tree.AddNode("[yellow]Predictions[/]");
+        if (results.ResultsResults is not null)
         {
-            var inp = predictions.AddNode($"[red]{i.Key}[/]");
-            foreach(var p in i.Value.ResultsJson.Data.Result.ClassPredictions)
+            foreach (var i in results.ResultsResults)
             {
-                inp.AddNode($"Class: {p.Class}");
-                inp.AddNode($"Score: {p.Score}");
+                var inp = predictions.AddNode($"[red]{i.Key}[/]");
+                foreach (var p in i.Value.ResultsJson.Data.Result.ClassPredictions)
+                {
+                    inp.AddNode($"Class: {p.Class}");
+                    inp.AddNode($"Score: {p.Score}");
 
+                }
             }
         }
         Con.Write(tree);

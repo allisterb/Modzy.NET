@@ -6,5 +6,6 @@ public enum InputType
     IMAGE,
     VIDEO,
     AUDIO,
-    JSON
+    JSON,
+    FILE
 }
