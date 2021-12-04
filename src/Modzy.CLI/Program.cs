@@ -57,7 +57,15 @@ class Program : Runtime
             else
             {
                 ApiKey = Config("MODZY_API_KEY");
-                Info("Using Modzy API key from configuration store.");
+                if (!string.IsNullOrEmpty(ApiKey))
+                {
+                    Info("Using Modzy API key from configuration store.");
+                }
+                else
+                {
+                    Error("Could not find the Modzy API key in configuration store.");
+                    Exit(ExitResult.INVALID_OPTIONS);
+                }
             }
             ApiClient = new ApiClient(ApiKey, BaseUrl);
         })
@@ -483,7 +491,14 @@ class Program : Runtime
             Exit(ExitResult.ERROR_IN_RESULTS);
         }
         var tree = new Tree($"Results for Job {job.JobIdentifier}");
-        
+        if (results!.Failed == 1)
+        {
+            tree.AddNode("[yellow]Status[/]").AddNode("[red]FAILED[/]");
+        }
+        else if (results!.Finished)
+        {
+            tree.AddNode("[yellow]Status[/]").AddNode("[green]FINISHED[/]");
+        }
         TreeNode timings = tree.AddNode("[yellow]Timings[/]");
         timings.AddNode($"[green]Job Submitted:[/] {results!.SubmittedAt}");
         timings.AddNode($"[green]Total Elapsed Time:[/] {results!.ElapsedTime}[red]s[/]");
@@ -491,20 +506,44 @@ class Program : Runtime
         timings.AddNode($"[green]Total Queue Time:[/] {results!.TotalQueueTime}[red]s[/]");
         
         TreeNode predictions = tree.AddNode("[yellow]Predictions[/]");
-        if (results.ResultsResults is not null)
+        if (results.ResultsResults is not null && results.ResultsResults.Where(r => r.Value.ResultsJson is not null && r.Value.ResultsJson.Data is not null).Any())
         {
             foreach (var i in results.ResultsResults)
             {
-                var inp = predictions.AddNode($"[red]{i.Key}[/]");
-                foreach (var p in i.Value.ResultsJson.Data.Result.ClassPredictions)
+                if (i.Value.ResultsJson is not null && i.Value.ResultsJson.Data is not null)
                 {
-                    inp.AddNode($"Class: {p.Class}");
-                    inp.AddNode($"Score: {p.Score}");
+                    var inp = predictions.AddNode($"[red]{i.Key}[/]");
+                    foreach (var p in i.Value.ResultsJson.Data.Result.ClassPredictions)
+                    {
+                        inp.AddNode($"Class: {p.Class}");
+                        inp.AddNode($"Score: {p.Score}");
 
+                    }
                 }
             }
+            Con.Write(tree);
         }
-        Con.Write(tree);
+        else if (results.ResultsResults is not null && results.ResultsResults.Where(r => r.Value.ResultsJson is not null && r.Value.ResultsJson.ListData is not null).Any())
+        {
+            foreach (var i in results.ResultsResults)
+            {
+                if (i.Value.ResultsJson is not null && i.Value.ResultsJson.ListData is not null)
+                {
+                    var inp = predictions.AddNode($"[red]{i.Key}[/]");
+                    foreach (var p in i.Value.ResultsJson.ListData)
+                    {
+                        inp.AddNode(p);
+                    }
+                }
+            }
+            Con.Write(tree);
+        }
+        else
+        {
+            Error("Could not understand results data returned.");
+            Exit(ExitResult.ERROR_IN_RESULTS);
+        }
+        
     }
     static void PrintLogo()
     {

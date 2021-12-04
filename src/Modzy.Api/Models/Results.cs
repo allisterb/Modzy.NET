@@ -97,12 +97,14 @@
         public string UpdateTime { get; set; } = string.Empty;
 
         [JsonProperty("endTime")]
-        public string EndTime { get; set; } =  string.Empty;
+        public string EndTime { get; set; } = string.Empty;
 
         [JsonProperty("results.json")]
+        
         public ResultsJson? ResultsJson;
 
         [JsonProperty("results.wav")]
+        [JsonConverter(typeof(ResultsJsonConverter))]
         public Uri? ResultsWav { get; set; }
 
         [JsonProperty("voting")]
@@ -112,7 +114,9 @@
     public partial class ResultsJson
     {
         [JsonProperty("data")]
-        public ResultsJsonData Data { get; set; } = new ResultsJsonData();
+        public ResultsJsonData? Data { get; set; }
+
+        public string[]? ListData { get; set; }
     }
 
     public partial class ResultsJsonData
@@ -182,5 +186,54 @@
 
         [JsonProperty("endTime")]
         public string EndTime { get; set; } = "";
+    }
+
+    internal class ResultsJsonConverter : JsonConverter
+    {
+        public override bool CanConvert(Type t) => t == typeof(ResultsJson);
+
+        public override object? ReadJson(JsonReader reader, Type t, object? existingValue, JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.Null)
+            {
+                return null;
+            }
+            else if (reader.TokenType == JsonToken.PropertyName)
+            {
+                var value = serializer.Deserialize<ResultsJsonData>(reader);
+                return new ResultsJson { Data = value };
+            }
+            else if (reader.TokenType == JsonToken.StartArray)
+            {
+                var value = serializer.Deserialize<string[]>(reader);
+                var o = new ResultsJson() { ListData = value! };
+                return o;
+            }
+            throw new Exception("Cannot unmarshal type ResultsJson.");
+        }
+
+
+        public override void WriteJson(JsonWriter writer, object? untypedValue, JsonSerializer serializer)
+        {
+            if (untypedValue == null)
+            {
+                serializer.Serialize(writer, null);
+                return;
+            }
+            ResultsJson value = (ResultsJson)untypedValue;
+            if (value.Data is not null)
+            {
+                serializer.Serialize(writer, value.Data);
+                return;
+            }
+            else if (value.ListData is not null)
+            {
+                serializer.Serialize(writer, value.ListData);
+                return;
+            }
+            else throw new Exception("Cannot marshal type JobInput");
+        }
+
+        public static readonly ResultsJsonConverter Singleton = new ResultsJsonConverter();
     }
 }

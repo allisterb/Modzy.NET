@@ -21,12 +21,14 @@ public abstract class Runtime
         {
             Configuration = new ConfigurationBuilder()
                 .AddUserSecrets("c0697968-04fe-49d7-a785-aaa817e38935")
+                .AddEnvironmentVariables()
                 .Build();
         }
         else if (Assembly.GetEntryAssembly()?.GetName().Name == "Modzy.CLI" && Environment.GetEnvironmentVariable("USERNAME") != "Allister")
         {
             Configuration = new ConfigurationBuilder()
             .AddJsonFile("config.json", optional: true)
+            .AddEnvironmentVariables()
             .Build();
         }
         else
