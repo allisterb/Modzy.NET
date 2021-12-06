@@ -171,16 +171,16 @@
         public string Error { get; set; } = "";
 
         [JsonProperty("inputFetching")]
-        public long InputFetching { get; set; }
+        public long? InputFetching { get; set; }
 
         [JsonProperty("outputUploading")]
         public object? OutputUploading { get; set; }
 
         [JsonProperty("modelLatency")]
-        public long ModelLatency { get; set; }
+        public long? ModelLatency { get; set; }
 
         [JsonProperty("queueTime")]
-        public long QueueTime { get; set; }
+        public long? QueueTime { get; set; }
 
         [JsonProperty("startTime")]
         public string StartTime { get; set; } = "";

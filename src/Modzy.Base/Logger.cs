@@ -26,6 +26,8 @@ public abstract class Logger
 
     public bool IsConfigured { get; protected set; } = false;
 
+    public bool IsDebug { get; init; } = false;
+
     public abstract void Info(string messageTemplate, params object[] args);
 
     public abstract void Debug(string messageTemplate, params object[] args);
@@ -64,9 +66,20 @@ public class ConsoleOp : Logger.Op
 
 public class ConsoleLogger : Logger
 {
+    public ConsoleLogger(bool debug = false):base() 
+    { 
+        IsDebug = debug; 
+    }
+    
     public override void Info(string messageTemplate, params object[] args) => Console.WriteLine(messageTemplate, args);
 
-    public override void Debug(string messageTemplate, params object[] args) => Console.WriteLine(messageTemplate, args);
+    public override void Debug(string messageTemplate, params object[] args)
+    {
+        if (IsDebug) 
+        { 
+            Console.WriteLine(messageTemplate, args); 
+        }
+    }
 
     public override void Error(string messageTemplate, params object[] args) => Console.WriteLine(messageTemplate, args);
 

@@ -102,5 +102,111 @@ public abstract class BaseClient : Runtime, IApiClient
             throw new Exception($"Could not determine input type from input file name {name}.");
         }
     }
+
+    public async Task<Job> RunModel(Model model, string version, Dictionary<string, Dictionary<string, object>> inputs)
+    {
+        Dictionary<string, Dictionary<string, object>> sources = new Dictionary<string, Dictionary<string, object>>();
+        foreach (var sif in inputs)
+        {
+            var d = new Dictionary<string, object>();
+            foreach (var f in sif.Value)
+            {
+                d.Add(f.Key, f.Value);
+            }
+            sources.Add(sif.Key, d);
+        }
+
+        Dictionary<string, object> data = new Dictionary<string, object>();
+        data.Add("model", new Dictionary<string, string>() { { "identifier", model.ModelId }, { "version", version } });
+        data.Add("explain", false);
+        object _sources = sources.Count > 1 ? (new Dictionary<string, object>() { { "job", sources } }) : sources;
+        data.Add("input", new Dictionary<string, object>() { { "type", "embedded" }, { "sources", _sources } });
+        return await this.SubmitJob(data);
+    }
+
+    public async Task<Job> RunModelWithText(Model model, string version, string inputName, string inputText)
+    {
+        Dictionary<string, Dictionary<string, object>> sif = new Dictionary<string, Dictionary<string, object>>()
+        {
+            {"0001", new Dictionary<string, object>(){ { inputName, "data:text/plain;charset=utf-8;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(inputText)) } } }
+        };
+        return await RunModel(model, version, sif);
+    }
+
+    public async Task<Job> RunModelWithJpg(Model model, string version, string inputName, byte[] inputData)
+    {
+        Dictionary<string, Dictionary<string, object>> sif = new Dictionary<string, Dictionary<string, object>>()
+        {
+            {"0001", new Dictionary<string, object>(){ { inputName, "data:image/jpg;charset=utf-8;base64," + Convert.ToBase64String(inputData) } } }
+        };
+        return await RunModel(model, version, sif);
+    }
+
+    public async Task<Job> RunModelWithVideo(Model model, string version, string inputName, byte[] inputData)
+    {
+        Dictionary<string, Dictionary<string, object>> sif = new Dictionary<string, Dictionary<string, object>>()
+        {
+            {"0001", new Dictionary<string, object>(){ { inputName, "data:video/mp4;charset=utf-8;base64," + Convert.ToBase64String(inputData) } } }
+        };
+        return await RunModel(model, version, sif);
+    }
+
+    public async Task<Job> RunModelWithWav(Model model, string version, string inputName, byte[] inputData)
+    {
+        Dictionary<string, Dictionary<string, object>> sif = new Dictionary<string, Dictionary<string, object>>()
+        {
+            {"0001", new Dictionary<string, object>(){ { inputName, "data:audio/wav;charset=utf-8;base64," + Convert.ToBase64String(inputData) } } }
+        };
+        return await RunModel(model, version, sif);
+    }
+
+    public async Task<Results?> WaitUntilComplete(Job job, Action<Job>? waitAction = null)
+    {
+        bool done = false;
+        bool completed = false;
+        int waiting = 0;
+        while (!done)
+        {
+            var j = this.GetJob(job.JobIdentifier).Result;
+            if (j == null)
+            {
+                done = true;
+                return null;
+            }
+            else
+            {
+                if (j.Status == "COMPLETED")
+                {
+                    done = true;
+                    completed = true;
+                }
+                else if (j.Status == "CANCELED")
+                {
+                    done = true;
+                    completed = false;
+                }
+                else
+                {
+                    waiting += 200;
+                    await Task.Delay(200);
+                    waitAction?.Invoke(j);
+                }
+            }
+        }
+        
+        if (completed)
+        {
+            Info("Job {0} completed.", job.JobIdentifier);
+            return await this.GetResults(job.JobIdentifier);
+
+        }
+        else
+        {
+            Info("Job {0} cancelled.", job.JobIdentifier);
+            return null;
+        }
+    }
+
+   
     #endregion
 }

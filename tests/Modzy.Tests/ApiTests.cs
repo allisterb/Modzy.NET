@@ -35,7 +35,7 @@ namespace Modzy.Tests
         public void CanGetAllModels()
         {
             ApiClient c = new ApiClient();
-            var models = c.GetAllModels().Result;
+            var models = c.GetModelsListing().Result;
             Assert.NotNull(c.ApiKey);
             Assert.NotNull(c.BaseUrl);
             Assert.NotEmpty(models);
@@ -71,6 +71,16 @@ namespace Modzy.Tests
             ApiClient c = new ApiClient();
             var s = c.GetModelSampleInput("z8qms2pgvx", "4.1.0").Result;
             Assert.NotNull(s);
+        }
+
+        [Fact]
+        public void CanRunModelWithText()
+        {
+            ApiClient c = new ApiClient();
+            var m = c.GetModel("ed542963de").Result;
+            var j = c.RunModelWithText(m, "1.0.1", "input.txt", "The Knicks suck and I hate them.").Result;
+            var r = c.WaitUntilComplete(j).Result;
+            Assert.NotNull(j);
         }
     }
 }

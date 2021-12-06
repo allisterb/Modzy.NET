@@ -1,11 +1,30 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UserSecretsId>c0697968-04fe-49d7-a785-aaa817e38935</UserSecretsId>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageId>Modzy.NET</PackageId>
+    <Version>0.1.0-alpha</Version>
+    <Authors>Allister Beharry</Authors>
+    <Company />
+    <Product />
+    <Description>Unofficial .NET library for the Modzy MLOps platform. https://www.modzy.com/</Description>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/allisterb/Modzy.NET.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/allisterb/Modzy.NET</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
