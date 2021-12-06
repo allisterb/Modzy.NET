@@ -47,7 +47,7 @@ class Program : Runtime
             SetLogger(new SerilogLogger(console: true, debug: false));
         }
         PrintLogo();
-        ParserResult<object> result = new Parser().ParseArguments<Options, ApiOptions, ModelsOptions, JobsOptions>(args);
+        ParserResult<object> result = new Parser().ParseArguments<Options, ApiOptions, ModelsOptions, JobsOptions, ResultsOptions>(args);
         result.WithParsed<ApiOptions>(o =>
         {
             if (!string.IsNullOrEmpty(o.ApiKey))
@@ -88,6 +88,11 @@ class Program : Runtime
                 RunModel(o);
                 Exit(ExitResult.SUCCESS);
             }
+            else if (o.ModelId is not null)
+            {
+                InspectModel(o);
+                Exit(ExitResult.SUCCESS);
+            }
             else
             {
                 ListModels(o);
@@ -107,10 +112,9 @@ class Program : Runtime
                 InspectJob(o);
                 Exit(ExitResult.SUCCESS);
             }
-            else if (o.Results)
+            else if (o.JobId is  not null)
             {
-                FailIfNoJobId(o);
-                JobResults(o);
+                InspectJob(o);
                 Exit(ExitResult.SUCCESS);
             }
             else
@@ -118,6 +122,10 @@ class Program : Runtime
                 ListJobs(o);
                 Exit(ExitResult.SUCCESS);
             }
+        })
+        .WithParsed<ResultsOptions>(o =>
+        {
+            JobResults(o);
         })
         #region Print options help
         .WithNotParsed((IEnumerable<Error> errors) =>
@@ -195,7 +203,7 @@ class Program : Runtime
     static Uri BaseUrl { get; } = new Uri("https://app.modzy.com/api/");
     static string ApiKey { get; set; } = "";
 
-    static Type[] OptionTypes = { typeof(Options), typeof(ApiOptions), typeof(ModelsOptions), typeof(JobsOptions)};
+    static Type[] OptionTypes = { typeof(Options), typeof(ApiOptions), typeof(ModelsOptions), typeof(JobsOptions), typeof(ResultsOptions)};
     static Dictionary<string, Type> OptionTypesMap { get; } = new Dictionary<string, Type>();
     #endregion
 
@@ -374,10 +382,62 @@ class Program : Runtime
             Error("Failed to submit job.");
             Exit(ExitResult.ERROR_IN_RESULTS);
         }
-        else
+        else if (!o.WaitForCompletetion)
         {
             Info("Successfully submitted job with ID {0}.", job.JobIdentifier);
-            Info("Use `modzy jobs -i {0}` to check the status of this job.", job.JobIdentifier);
+            Info("Use `modzy jobs {0}` to check the status of this job.", job.JobIdentifier);
+        }
+        else
+        {
+            bool done = false;
+            bool completed = false;
+            int waiting = 0;
+            Info("Successfully submitted job with ID {0}.", job.JobIdentifier);
+            Con.Status().Spinner(Spinner.Known.Dots).Start($"Waiting for job [cyan]{job.JobIdentifier}[/] to complete", ctx =>
+            {
+                while (!done)
+                {
+                    var j = ApiClient!.GetJob(job.JobIdentifier).Result;
+                    if (j == null)
+                    {
+                        done = true;
+                        return;
+                    }
+                    else
+                    {
+                        if (j.Status == "COMPLETED")
+                        {
+                            done = true;
+                            completed = true;
+                            return;
+                        }
+                        else
+                        {
+                            waiting += 200;
+                            Task.Delay(200);
+                            ctx.Status = $"Waiting for job [cyan]{job.JobIdentifier}[/] to complete: {waiting.ToString()} [red]ms[/]";
+                        }
+                    }
+                }
+            });
+            if (completed)
+            {
+                Info("Job {0} completed.", job.JobIdentifier);
+                var results = Con.Status().Spinner(Spinner.Known.Dots).Start($"Fetching results for job {job.JobIdentifier}...", ctx => ApiClient!.GetResults(job.JobIdentifier).Result);
+                if (results == null)
+                {
+                    Error("Could not get results for job with ID {0}.", job.JobIdentifier);
+                    Exit(ExitResult.ERROR_IN_RESULTS);
+                }
+                else
+                {
+                    PrintResults(results);
+                }
+            }
+            else
+            {
+                Error("not completed.");
+            }
         }
         var tree = new Tree($"Job [green]{job!.JobIdentifier.ToString()}[/]");
     }
@@ -459,7 +519,7 @@ class Program : Runtime
         
     }
 
-    static void JobResults(JobsOptions o)
+    static void JobResults(ResultsOptions o)
     {
         var job = Con.Status().Spinner(Spinner.Known.Dots).Start($"Fetching job details for job {o.JobId!}...", ctx => ApiClient!.GetJob(o.JobId!).Result);
         if (job == null)
@@ -490,7 +550,15 @@ class Program : Runtime
             Error("Could not get results for job with ID {0}.", o.JobId!);
             Exit(ExitResult.ERROR_IN_RESULTS);
         }
-        var tree = new Tree($"Results for Job {job.JobIdentifier}");
+        else
+        {
+            PrintResults(results);
+        }
+    }
+
+    static void PrintResults(Results results)
+    {
+        var tree = new Tree($"Results for Job [cyan]{results.JobIdentifier}[/]");
         if (results!.Failed == 1)
         {
             tree.AddNode("[yellow]Status[/]").AddNode("[red]FAILED[/]");
@@ -501,10 +569,10 @@ class Program : Runtime
         }
         TreeNode timings = tree.AddNode("[yellow]Timings[/]");
         timings.AddNode($"[green]Job Submitted:[/] {results!.SubmittedAt}");
-        timings.AddNode($"[green]Total Elapsed Time:[/] {results!.ElapsedTime}[red]s[/]");
-        timings.AddNode($"[green]Total Model Latency:[/] {results!.TotalModelLatency}[red]s[/]");
-        timings.AddNode($"[green]Total Queue Time:[/] {results!.TotalQueueTime}[red]s[/]");
-        
+        timings.AddNode($"[green]Total Elapsed Time:[/] {results!.ElapsedTime}[red] ms[/]");
+        timings.AddNode($"[green]Total Model Latency:[/] {results!.TotalModelLatency}[red] ms[/]");
+        timings.AddNode($"[green]Total Queue Time:[/] {results!.TotalQueueTime}[red] ms[/]");
+
         TreeNode predictions = tree.AddNode("[yellow]Predictions[/]");
         if (results.ResultsResults is not null && results.ResultsResults.Where(r => r.Value.ResultsJson is not null && r.Value.ResultsJson.Data is not null).Any())
         {
@@ -513,10 +581,15 @@ class Program : Runtime
                 if (i.Value.ResultsJson is not null && i.Value.ResultsJson.Data is not null)
                 {
                     var inp = predictions.AddNode($"[red]{i.Key}[/]");
+
+                    var timingsr = inp.AddNode("[yellow]Timings[/]");
+                    timingsr.AddNode($"Input Fetch Time: {i.Value.InputFetching} [red] ms[/]");
+                    timingsr.AddNode($"Output Uploading Time: {i.Value.OutputUploading} [red] ms[/]");
+                    var classp = inp.AddNode("[yellow]Classes[/]");
                     foreach (var p in i.Value.ResultsJson.Data.Result.ClassPredictions)
                     {
-                        inp.AddNode($"Class: {p.Class}");
-                        inp.AddNode($"Score: {p.Score}");
+                        classp.AddNode($"Class: {p.Class}");
+                        classp.AddNode($"[green]Score: {p.Score}[/]");
 
                     }
                 }
@@ -538,12 +611,41 @@ class Program : Runtime
             }
             Con.Write(tree);
         }
+        else if (results.ResultsResults is not null && results.ResultsResults.Where(r => r.Value.ResultsWav is not null).Any())
+        {
+            foreach (var i in results.ResultsResults)
+            {
+                if (i.Value.ResultsWav is not null)
+                {
+                    var inp = predictions.AddNode($"[red]{i.Key}[/]");
+                    inp.AddNode("[green]Wav output[/]: " + i.Value.ResultsWav.ToString());
+                }
+            }
+            Con.Write(tree);
+            foreach (var i in results.ResultsResults)
+            {
+                if (i.Value.ResultsWav is not null)
+                {
+                    var getfile = Con.Status().Spinner(Spinner.Known.Dots).Start($"Downloading results output file {i.Value.ResultsWav}...", ctx =>
+                    {
+                        return ApiClient!.RestClient.GetByteArrayAsync(i.Value.ResultsWav).Result;
+                    });
+                    var filename = i.Value.ResultsWav.Segments.Last();
+                    if (File.Exists(filename))
+                    {
+                        Info("Warning! file {0} exists and will be overwritten.", filename);
+                    }
+                    File.WriteAllBytes(filename, getfile);
+                    Info("Downloaded {0} bytes to {1}.", getfile.Length, filename);
+                }
+            }
+        }
         else
         {
             Error("Could not understand results data returned.");
             Exit(ExitResult.ERROR_IN_RESULTS);
         }
-        
+
     }
     static void PrintLogo()
     {

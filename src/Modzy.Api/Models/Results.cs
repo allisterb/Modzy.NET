@@ -104,7 +104,6 @@
         public ResultsJson? ResultsJson;
 
         [JsonProperty("results.wav")]
-        [JsonConverter(typeof(ResultsJsonConverter))]
         public Uri? ResultsWav { get; set; }
 
         [JsonProperty("voting")]
@@ -131,6 +130,11 @@
         public object Drift { get; set; } = new object();
     }
 
+    public partial class ResultsJsonDataData
+    {
+        [JsonProperty("data")]
+        public ResultsJsonData? Data { get; set; }
+    }
     public partial class Result
     {
         [JsonProperty("classPredictions")]
@@ -198,10 +202,10 @@
             {
                 return null;
             }
-            else if (reader.TokenType == JsonToken.PropertyName)
+            else if (reader.TokenType == JsonToken.StartObject)
             {
-                var value = serializer.Deserialize<ResultsJsonData>(reader);
-                return new ResultsJson { Data = value };
+                var value = serializer.Deserialize<ResultsJsonDataData>(reader);
+                return new ResultsJson() { Data = value!.Data };
             }
             else if (reader.TokenType == JsonToken.StartArray)
             {

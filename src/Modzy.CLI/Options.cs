@@ -35,11 +35,11 @@ namespace Modzy.CLI
 
     public class ApiOptions : Options
     {
-        [Option("key", Required = false, HelpText = "Your Modzy API key. If none is specified then use the environment variable MODZY_APIKEY.")]
+        [Option("key", Required = false, HelpText = "Your Modzy API key. If none is specified then the environment variable MODZY_APIKEY will be used.")]
         public string? ApiKey { get; set; }
     }
 
-    [Verb("models", HelpText = "Work with model operations.")]
+    [Verb("models", HelpText = "Perform model operations.")]
     public class ModelsOptions : ApiOptions 
     {
         [Option('l', "list", Required = false, HelpText = "List all models.")]
@@ -63,12 +63,15 @@ namespace Modzy.CLI
         [Option('t', "text", Required = false, HelpText = "Indicates plain text input should be sent to model.")]
         public bool PlainText { get; set; }
 
+        [Option('w', "wait", Required = false, HelpText = "When submitting a job wait for the job to complete.")]
+        public bool WaitForCompletetion { get; set; }
+
         [Value(0, Required = false)]
         public string? ModelId { get; set; }
 
     }
 
-    [Verb("jobs", HelpText = "Work with job operations.")]
+    [Verb("jobs", HelpText = "Perform operations on jobs.")]
     public class JobsOptions : ApiOptions
     {
         [Option('l', "list", Required = false, HelpText = "List all pending jobs.")]
@@ -88,5 +91,12 @@ namespace Modzy.CLI
 
         [Value(0, Required = false)]
         public string? JobId { get; set; }
+    }
+
+    [Verb("results", HelpText = "Perform operations on jobs.")]
+    public class ResultsOptions : ApiOptions
+    {
+        [Value(0, Required = true)]
+        public string JobId { get; set; } = String.Empty;
     }
 }

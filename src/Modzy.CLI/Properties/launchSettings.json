@@ -2,7 +2,7 @@
   "profiles": {
     "Modzy.CLI": {
       "commandName": "Project",
-      "commandLineArgs": "jobs -r b42271f0-86db-4af5-82e0-be8ccbff0950",
+      "commandLineArgs": "models -r  ed542963de -w -t -v 1.0.1",
       "environmentVariables": {
         "MODZY_APIKEY": "qBL0HO1JmSXy43E3Hso6.GoXIos62w9ld2Ir8YMrn"
       }

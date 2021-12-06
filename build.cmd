@@ -1,7 +1,9 @@
 @echo off
 @setlocal
+pushd
 set ERROR_CODE=0
-bin\Debug\net6.0\Modzy.CLI.exe %*
+dotnet build src\Modzy.CLI\Modzy.CLI.csproj %*
 
 :end
+popd
 exit /B %ERROR_CODE%
