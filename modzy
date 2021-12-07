@@ -1,0 +1,2 @@
+#!/bin/bash
+src/Modzy.CLI/bin/Debug/net6.0/Modzy.CLI $*
