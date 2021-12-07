@@ -63,7 +63,7 @@ class Program : Runtime
                 }
                 else
                 {
-                    Error("Could not find the Modzy API key in configuration store.");
+                    Error("Could not find the Modzy API key in configuration store. Set the MODZY_API_KEY environment variable for the current user.");
                     Exit(ExitResult.INVALID_OPTIONS);
                 }
             }
