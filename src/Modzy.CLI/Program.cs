@@ -63,7 +63,7 @@ class Program : Runtime
                 }
                 else
                 {
-                    Error("Could not find the Modzy API key in configuration store.");
+                    Error("Could not find the Modzy API key in configuration store. Set the MODZY_API_KEY environment variable for the current user.");
                     Exit(ExitResult.INVALID_OPTIONS);
                 }
             }
@@ -214,7 +214,7 @@ class Program : Runtime
         Info("Got {0} models in total.", modelsListing.Length);
         var models = new Model[modelsListing.Length];
         var table = new Table();
-        table.AddColumns("[green]Id[/]", "[green]Name[/]", "[green]Description[/]", "[green]Author[/]", "[green]Versions[/]", "[green]Latest Version[/]");
+        table.AddColumns("[green]Id[/]", "[green]Name[/]", "[green]Description[/]", "[green]Author[/]", "[green]Versions[/]", "[green]Latest Version[/]", "[green]Visibility[/]");
         using (var op = Begin("Fetching details for {0} models", modelsListing.Length))
         {
             AnsiConsole.Progress().Start(ctx =>
@@ -229,7 +229,7 @@ class Program : Runtime
                         {
                             var model = models[i];
                             table.AddRow(model.ModelId, model.Name, model.Description, model.Author,
-                                model.Versions.Any() ? model.Versions.Aggregate((p, s) => p + "," + s) : "", model.LatestVersion);
+                                model.Versions.Any() ? model.Versions.Aggregate((p, s) => p + "," + s) : "", model.LatestVersion, model.Visibility?.Scope ?? "");
                             table.AddEmptyRow();
                         }
                         task1.Increment(100.0 / modelsListing.Length);
@@ -337,7 +337,7 @@ class Program : Runtime
                     }
                     else if (name.EndsWith(".jpg"))
                     {
-                        sif.Add(si[nf], "data:image/jpg;base64," + Convert.ToBase64String(File.ReadAllBytes(name)));
+                        sif.Add(si[nf], "data:image/jpeg;base64," + Convert.ToBase64String(File.ReadAllBytes(name)));
                     }
                     else if (name.EndsWith(".png"))
                     {
@@ -573,40 +573,20 @@ class Program : Runtime
         timings.AddNode($"[green]Total Model Latency:[/] {results!.TotalModelLatency}[red] ms[/]");
         timings.AddNode($"[green]Total Queue Time:[/] {results!.TotalQueueTime}[red] ms[/]");
 
-        TreeNode predictions = tree.AddNode("[yellow]Predictions[/]");
-        if (results.ResultsResults is not null && results.ResultsResults.Where(r => r.Value.ResultsJson is not null && r.Value.ResultsJson.Data is not null).Any())
+        TreeNode predictions = tree.AddNode("[yellow]Results[/]");
+        if (results.ResultsResults is not null && results.ResultsResults.Where(r => r.Value.ResultsJson is not null).Any())
         {
             foreach (var i in results.ResultsResults)
             {
-                if (i.Value.ResultsJson is not null && i.Value.ResultsJson.Data is not null)
+                if (i.Value.ResultsJson is not null && i.Value.ResultsJson is not null)
                 {
                     var inp = predictions.AddNode($"[red]{i.Key}[/]");
 
                     var timingsr = inp.AddNode("[yellow]Timings[/]");
                     timingsr.AddNode($"Input Fetch Time: {i.Value.InputFetching} [red] ms[/]");
                     timingsr.AddNode($"Output Uploading Time: {i.Value.OutputUploading} [red] ms[/]");
-                    var classp = inp.AddNode("[yellow]Classes[/]");
-                    foreach (var p in i.Value.ResultsJson.Data.Result.ClassPredictions)
-                    {
-                        classp.AddNode($"Class: {p.Class}");
-                        classp.AddNode($"[green]Score: {p.Score}[/]");
-
-                    }
-                }
-            }
-            Con.Write(tree);
-        }
-        else if (results.ResultsResults is not null && results.ResultsResults.Where(r => r.Value.ResultsJson is not null && r.Value.ResultsJson.ListData is not null).Any())
-        {
-            foreach (var i in results.ResultsResults)
-            {
-                if (i.Value.ResultsJson is not null && i.Value.ResultsJson.ListData is not null)
-                {
-                    var inp = predictions.AddNode($"[red]{i.Key}[/]");
-                    foreach (var p in i.Value.ResultsJson.ListData)
-                    {
-                        inp.AddNode(p);
-                    }
+                    var classp = inp.AddNode("[yellow]Output[/]");
+                    classp.AddNode(Newtonsoft.Json.JsonConvert.SerializeObject(i.Value.ResultsJson).EscapeMarkup());
                 }
             }
             Con.Write(tree);

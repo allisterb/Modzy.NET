@@ -82,5 +82,15 @@ namespace Modzy.Tests
             var r = c.WaitUntilComplete(j).Result;
             Assert.NotNull(j);
         }
+
+        [Fact]
+        public void CanGetResultsDunamic()
+        {
+            ApiClient c = new ApiClient();
+            var m = c.GetModel("ed542963de").Result;
+            var j = c.RunModelWithText(m, "1.0.1", "input.txt", "The Knicks suck and I hate them.").Result;
+            var r = c.GetResultsDynamic(j.JobIdentifier).Result;
+            Assert.NotNull(j);
+        }
     }
 }

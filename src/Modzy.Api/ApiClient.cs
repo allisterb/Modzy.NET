@@ -7,6 +7,7 @@ public class ApiClient : BaseClient
     {
         Initialized = true;
     }
+    public ApiClient(string apiKey) : this(apiKey, new Uri("https://app.modzy.com/api/")) {}
 
     public ApiClient() : this(Config("MODZY_API_KEY"), GetUri(Config("MODZY_BASE_URL"))) { }
     #endregion

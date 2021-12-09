@@ -113,7 +113,7 @@
     public partial class ResultsJson
     {
         [JsonProperty("data")]
-        public ResultsJsonData? Data { get; set; }
+        public Dictionary<string, object>? Data { get; set; }
 
         public string[]? ListData { get; set; }
     }
@@ -204,8 +204,8 @@
             }
             else if (reader.TokenType == JsonToken.StartObject)
             {
-                var value = serializer.Deserialize<ResultsJsonDataData>(reader);
-                return new ResultsJson() { Data = value!.Data };
+                var value = serializer.Deserialize<Dictionary<string, object>>(reader);
+                return new ResultsJson() { Data = value };
             }
             else if (reader.TokenType == JsonToken.StartArray)
             {

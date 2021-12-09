@@ -206,7 +206,5 @@ public abstract class BaseClient : Runtime, IApiClient
             return null;
         }
     }
-
-   
     #endregion
 }
